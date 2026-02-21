@@ -1,0 +1,118 @@
+name: LinkedIn Job Scraper
+
+on:
+  # Runs automaticamente a cada 3 dias às 09:00 UTC (10:00 em Portugal)
+  schedule:
+    - cron: '0 9 */3 * *'
+  
+  # Permite executar manualmente
+  workflow_dispatch:
+
+jobs:
+  scrape-linkedin-jobs:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: |
+          pip install requests
+
+      - name: Run LinkedIn Scraper
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: |
+          python3 << 'EOF'
+          import requests
+          import json
+          import os
+          from datetime import datetime
+
+          # Configuração
+          API_TOKEN = os.environ['APIFY_TOKEN']
+          ACTOR_ID = "curious_coder/linkedin-jobs-scraper"
+
+          # Payload com as tuas queries
+          payload = {
+              "searchQueries": [
+                  "Senior Frontend Engineer Madrid",
+                  "Staff Engineer React Spain Remote",
+                  "Frontend Lead Next.js Madrid",
+                  "Full Stack Engineer Node.js Madrid Remote"
+              ],
+              "maxResults": 50,  # 50 jobs por query = 200 total
+              "includeCompanyDetails": True,
+              "includeRecruiterInfo": True,
+              "filters": {
+                  "timePosted": "past24Hours",
+                  "experienceLevel": ["MID_SENIOR", "DIRECTOR"],
+                  "jobType": ["FULL_TIME"],
+                  "remote": ["REMOTE", "HYBRID", "ON_SITE"]
+              }
+          }
+
+          # Executar scraper
+          url = f"https://api.apify.com/v2/acts/{ACTOR_ID}/runs"
+          headers = {
+              "Authorization": f"Bearer {API_TOKEN}",
+              "Content-Type": "application/json"
+          }
+
+          print(f"🚀 [{datetime.now()}] Starting LinkedIn scraper...")
+          print(f"📊 Queries: {len(payload['searchQueries'])}")
+          print(f"🎯 Max results per query: {payload['maxResults']}")
+          
+          response = requests.post(url, json=payload, headers=headers)
+
+          if response.status_code == 201:
+              data = response.json()['data']
+              run_id = data['id']
+              print(f"✅ Scraper started successfully!")
+              print(f"🔗 Run ID: {run_id}")
+              print(f"📊 Monitor: https://console.apify.com/actors/runs/{run_id}")
+              print(f"⏱️  Expected duration: 3-5 minutes")
+              
+              # Guardar run ID para referência
+              with open('last_run.txt', 'w') as f:
+                  f.write(f"{run_id}\n")
+                  f.write(f"{datetime.now().isoformat()}\n")
+              
+              print("\n📧 You will receive results via:")
+              print("   1. Apify Console: https://console.apify.com/actors/runs")
+              print("   2. Email notification (if configured)")
+              
+          else:
+              print(f"❌ Error starting scraper: {response.status_code}")
+              print(f"Response: {response.text}")
+              exit(1)
+          EOF
+
+      - name: Upload run info
+        uses: actions/upload-artifact@v4
+        with:
+          name: scraper-run-info
+          path: last_run.txt
+          retention-days: 30
+
+      - name: Summary
+        run: |
+          echo "## 🎯 LinkedIn Job Scraper Execution" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Status:** ✅ Completed" >> $GITHUB_STEP_SUMMARY
+          echo "**Time:** $(date)" >> $GITHUB_STEP_SUMMARY
+          echo "**Run ID:** $(cat last_run.txt | head -n 1)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Configuration" >> $GITHUB_STEP_SUMMARY
+          echo "- Queries: 4" >> $GITHUB_STEP_SUMMARY
+          echo "- Jobs per query: 50" >> $GITHUB_STEP_SUMMARY
+          echo "- Total expected: ~200 jobs" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 🔗 View Results" >> $GITHUB_STEP_SUMMARY
+          echo "[Open Apify Console](https://console.apify.com/actors/runs)" >> $GITHUB_STEP_SUMMARY

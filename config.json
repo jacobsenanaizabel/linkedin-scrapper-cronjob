@@ -1,0 +1,69 @@
+{
+  "searchQueries": [
+    "Senior Frontend Engineer Madrid",
+    "Staff Engineer React Spain Remote",
+    "Frontend Lead Next.js Madrid",
+    "Full Stack Engineer Node.js Madrid Remote"
+  ],
+  "maxResults": 50,
+  "includeCompanyDetails": true,
+  "includeRecruiterInfo": true,
+  "filters": {
+    "timePosted": "past24Hours",
+    "experienceLevel": [
+      "MID_SENIOR",
+      "DIRECTOR"
+    ],
+    "jobType": [
+      "FULL_TIME"
+    ],
+    "remote": [
+      "REMOTE",
+      "HYBRID",
+      "ON_SITE"
+    ],
+    "companySize": [
+      "51-200",
+      "201-500",
+      "501-1000",
+      "1001-5000",
+      "5001-10000",
+      "10001+"
+    ]
+  },
+  "excludeKeywords": [
+    "consultoria",
+    "consulting",
+    "outsourcing",
+    "body shop"
+  ],
+  "notes": {
+    "timePosted_options": [
+      "past24Hours",
+      "pastWeek",
+      "pastMonth",
+      "any"
+    ],
+    "experienceLevel_options": [
+      "INTERNSHIP",
+      "ENTRY_LEVEL",
+      "ASSOCIATE",
+      "MID_SENIOR",
+      "DIRECTOR",
+      "EXECUTIVE"
+    ],
+    "jobType_options": [
+      "FULL_TIME",
+      "PART_TIME",
+      "CONTRACT",
+      "TEMPORARY",
+      "VOLUNTEER",
+      "INTERNSHIP"
+    ],
+    "remote_options": [
+      "ON_SITE",
+      "REMOTE",
+      "HYBRID"
+    ]
+  }
+}
