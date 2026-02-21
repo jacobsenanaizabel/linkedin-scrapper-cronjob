@@ -1,0 +1,189 @@
+name: LinkedIn Scraper + Results Download
+
+on:
+  schedule:
+    - cron: '0 9 */3 * *'  # A cada 3 dias às 09:00 UTC
+  workflow_dispatch:
+
+jobs:
+  scrape-and-download:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install dependencies
+        run: pip install requests pandas
+
+      - name: Run Scraper and Download Results
+        env:
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+        run: |
+          python3 << 'EOF'
+          import requests
+          import json
+          import time
+          import os
+          from datetime import datetime
+          import pandas as pd
+
+          API_TOKEN = os.environ['APIFY_TOKEN']
+          ACTOR_ID = "curious_coder/linkedin-jobs-scraper"
+
+          # STEP 1: Start scraper
+          print("=" * 60)
+          print(f"🚀 STEP 1: Starting LinkedIn Job Scraper")
+          print("=" * 60)
+          
+          payload = {
+              "searchQueries": [
+                  "Senior Frontend Engineer Madrid",
+                  "Staff Engineer React Spain Remote",
+                  "Frontend Lead Next.js Madrid",
+                  "Full Stack Engineer Node.js Madrid Remote"
+              ],
+              "maxResults": 50,
+              "includeCompanyDetails": True,
+              "includeRecruiterInfo": True,
+              "filters": {
+                  "timePosted": "past24Hours",
+                  "experienceLevel": ["MID_SENIOR", "DIRECTOR"],
+                  "jobType": ["FULL_TIME"]
+              }
+          }
+
+          url = f"https://api.apify.com/v2/acts/{ACTOR_ID}/runs"
+          headers = {"Authorization": f"Bearer {API_TOKEN}", "Content-Type": "application/json"}
+          
+          response = requests.post(url, json=payload, headers=headers)
+          
+          if response.status_code != 201:
+              print(f"❌ Failed to start scraper: {response.status_code}")
+              print(response.text)
+              exit(1)
+          
+          run_id = response.json()['data']['id']
+          print(f"✅ Scraper started! Run ID: {run_id}")
+
+          # STEP 2: Wait for completion
+          print("\n" + "=" * 60)
+          print(f"⏱️  STEP 2: Waiting for completion...")
+          print("=" * 60)
+          
+          max_wait = 600  # 10 minutos
+          start_time = time.time()
+          
+          while time.time() - start_time < max_wait:
+              time.sleep(15)
+              
+              status_url = f"https://api.apify.com/v2/acts/{ACTOR_ID}/runs/{run_id}"
+              status_response = requests.get(status_url, headers={"Authorization": f"Bearer {API_TOKEN}"})
+              
+              if status_response.status_code == 200:
+                  status = status_response.json()['data']['status']
+                  print(f"   Status: {status}")
+                  
+                  if status == "SUCCEEDED":
+                      print("✅ Scraper completed successfully!")
+                      break
+                  elif status in ["FAILED", "ABORTED", "TIMED-OUT"]:
+                      print(f"❌ Scraper failed with status: {status}")
+                      exit(1)
+              
+              if time.time() - start_time >= max_wait:
+                  print("⚠️ Timeout waiting for results. Check Apify Console.")
+                  exit(1)
+
+          # STEP 3: Download results
+          print("\n" + "=" * 60)
+          print(f"📥 STEP 3: Downloading results...")
+          print("=" * 60)
+          
+          dataset_url = f"https://api.apify.com/v2/acts/{ACTOR_ID}/runs/{run_id}/dataset/items"
+          results_response = requests.get(dataset_url, headers={"Authorization": f"Bearer {API_TOKEN}"})
+          
+          if results_response.status_code == 200:
+              jobs = results_response.json()
+              
+              # Save JSON
+              with open('jobs_latest.json', 'w', encoding='utf-8') as f:
+                  json.dump(jobs, f, ensure_ascii=False, indent=2)
+              
+              print(f"✅ Downloaded {len(jobs)} jobs")
+              
+              # Create summary
+              if jobs:
+                  # Convert to DataFrame for analysis
+                  df = pd.DataFrame(jobs)
+                  
+                  summary = {
+                      "total_jobs": len(jobs),
+                      "companies": df['company'].nunique() if 'company' in df.columns else 0,
+                      "locations": df.get('location', pd.Series()).value_counts().head(5).to_dict(),
+                      "timestamp": datetime.now().isoformat(),
+                      "run_id": run_id
+                  }
+                  
+                  with open('summary.json', 'w') as f:
+                      json.dump(summary, f, indent=2)
+                  
+                  # Create CSV
+                  if 'title' in df.columns:
+                      export_cols = ['title', 'company', 'location', 'url']
+                      export_cols = [col for col in export_cols if col in df.columns]
+                      df[export_cols].to_csv('jobs_latest.csv', index=False)
+                  
+                  print("\n" + "=" * 60)
+                  print("📊 SUMMARY")
+                  print("=" * 60)
+                  print(f"Total jobs: {summary['total_jobs']}")
+                  print(f"Companies: {summary['companies']}")
+                  print(f"Run ID: {run_id}")
+              
+              # Save run info
+              with open('last_run.txt', 'w') as f:
+                  f.write(f"{run_id}\n{datetime.now().isoformat()}\n")
+          else:
+              print(f"❌ Failed to download results: {results_response.status_code}")
+              exit(1)
+          
+          print("\n✅ All steps completed successfully!")
+          EOF
+
+      - name: Upload Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: linkedin-jobs-${{ github.run_number }}
+          path: |
+            jobs_latest.json
+            jobs_latest.csv
+            summary.json
+            last_run.txt
+          retention-days: 90
+
+      - name: Create Summary
+        run: |
+          echo "## 🎯 LinkedIn Job Scraper Results" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          if [ -f summary.json ]; then
+            TOTAL=$(jq -r '.total_jobs' summary.json)
+            COMPANIES=$(jq -r '.companies' summary.json)
+            RUN_ID=$(jq -r '.run_id' summary.json)
+            
+            echo "**Total Jobs Found:** $TOTAL" >> $GITHUB_STEP_SUMMARY
+            echo "**Unique Companies:** $COMPANIES" >> $GITHUB_STEP_SUMMARY
+            echo "**Run ID:** $RUN_ID" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "### 📥 Download Results" >> $GITHUB_STEP_SUMMARY
+            echo "Go to the **Artifacts** section below to download:" >> $GITHUB_STEP_SUMMARY
+            echo "- \`jobs_latest.json\` - Full data" >> $GITHUB_STEP_SUMMARY
+            echo "- \`jobs_latest.csv\` - Spreadsheet format" >> $GITHUB_STEP_SUMMARY
+            echo "- \`summary.json\` - Quick stats" >> $GITHUB_STEP_SUMMARY
+          fi

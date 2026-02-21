@@ -37,7 +37,7 @@ jobs:
 
           # Configuração
           API_TOKEN = os.environ['APIFY_TOKEN']
-          ACTOR_ID = "curious_coder/linkedin-jobs-scraper"
+          ACTOR_ID = "curious_coder~linkedin-jobs-scraper"
 
           # Payload com as tuas queries
           payload = {
