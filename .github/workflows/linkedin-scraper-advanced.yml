@@ -147,15 +147,20 @@ jobs:
               start_time = time.time()
               
               while time.time() - start_time < max_wait:
-                  status_url = f"https://api.apify.com/v2/acts/{ACTOR_ID}/runs/{run_id}"
+                  # Endpoint CORRETO: /v2/actor-runs/
+                  status_url = f"https://api.apify.com/v2/actor-runs/{run_id}"
                   status_response = requests.get(status_url, headers={"Authorization": f"Bearer {API_TOKEN}"})
                   
                   if status_response.status_code == 200:
-                      status = status_response.json()['data']['status']
+                      run_data = status_response.json()['data']
+                      status = run_data['status']
                       
                       if status == "SUCCEEDED":
                           elapsed = int(time.time() - start_time)
+                          # Guardar dataset ID para download
+                          run['dataset_id'] = run_data.get('defaultDatasetId')
                           print(f"   ✅ Completed in {elapsed}s")
+                          print(f"   📊 Dataset ID: {run['dataset_id']}")
                           completed_runs.append(run)
                           break
                       elif status in ["FAILED", "ABORTED", "TIMED-OUT"]:
@@ -192,17 +197,33 @@ jobs:
           
           for run in completed_runs:
               run_id = run['run_id']
+              dataset_id = run.get('dataset_id')
               name = run['name']
               
               print(f"\n📥 Downloading: {name}")
+              print(f"   Run ID: {run_id}")
+              print(f"   Dataset ID: {dataset_id}")
               
-              dataset_url = f"https://api.apify.com/v2/acts/{ACTOR_ID}/runs/{run_id}/dataset/items"
-              results_response = requests.get(dataset_url, headers={"Authorization": f"Bearer {API_TOKEN}"})
+              if not dataset_id:
+                  print(f"   ⚠️ No dataset ID found, trying alternative method...")
+                  dataset_url = f"https://api.apify.com/v2/actor-runs/{run_id}/dataset/items"
+              else:
+                  # Endpoint CORRETO: /v2/datasets/{dataset_id}/items
+                  dataset_url = f"https://api.apify.com/v2/datasets/{dataset_id}/items"
+              
+              print(f"   🔗 URL: {dataset_url}")
+              
+              results_response = requests.get(
+                  dataset_url,
+                  headers={"Authorization": f"Bearer {API_TOKEN}"},
+                  params={"clean": "true", "format": "json"}
+              )
+              
+              print(f"   📡 Status Code: {results_response.status_code}")
               
               if results_response.status_code == 200:
                   jobs = results_response.json()
                   
-                  # Adicionar metadados a cada job
                   for job in jobs:
                       job['_search_name'] = name
                       job['_search_title'] = run['payload']['title']
@@ -216,6 +237,7 @@ jobs:
                   print(f"   ✅ Downloaded {len(jobs)} jobs")
               else:
                   print(f"   ❌ Failed to download: {results_response.status_code}")
+                  print(f"   Response: {results_response.text[:500]}")
 
           # ===================================================================
           # STEP 4: SALVAR RESULTADOS
