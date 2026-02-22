@@ -1,4 +1,4 @@
-name: LinkedIn Job Scraper
+name: LinkedIn Job Scraper (RIGGeqD6RqKmlVoQU)
 
 on:
   # Runs automaticamente a cada 3 dias às 09:00 UTC (10:00 em Portugal)
@@ -25,7 +25,7 @@ jobs:
         run: |
           pip install requests
 
-      - name: Run LinkedIn Scraper
+      - name: Run LinkedIn Scraper - React Jobs
         env:
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
         run: |
@@ -37,82 +37,138 @@ jobs:
 
           # Configuração
           API_TOKEN = os.environ['APIFY_TOKEN']
-          ACTOR_ID = "curious_coder~linkedin-jobs-scraper"
+          ACTOR_ID = "RIGGeqD6RqKmlVoQU"
 
-          # Payload com as tuas queries
-          payload = {
-              "searchQueries": [
-                  "Senior Frontend Engineer Madrid",
-                  "Staff Engineer React Spain Remote",
-                  "Frontend Lead Next.js Madrid",
-                  "Full Stack Engineer Node.js Madrid Remote"
-              ],
-              "maxResults": 50,  # 50 jobs por query = 200 total
-              "includeCompanyDetails": True,
-              "includeRecruiterInfo": True,
-              "filters": {
-                  "timePosted": "past24Hours",
-                  "experienceLevel": ["MID_SENIOR", "DIRECTOR"],
-                  "jobType": ["FULL_TIME"],
-                  "remote": ["REMOTE", "HYBRID", "ON_SITE"]
-              }
+          # Job Search 1: Senior Frontend Engineer - Madrid
+          payload_1 = {
+              "title": "Senior Frontend Engineer",
+              "location": "madrid",
+              "limit": 50,
+              "contractType": ["F"],           # F = Full-time
+              "experienceLevel": ["4"],        # 4 = Senior level
+              "datePosted": "r604800"          # r604800 = últimas 7 dias
           }
 
-          # Executar scraper
+          # Job Search 2: React Developer - Spain Remote
+          payload_2 = {
+              "title": "React Developer Remote",
+              "location": "spain",
+              "limit": 50,
+              "contractType": ["F"],
+              "experienceLevel": ["4"],
+              "datePosted": "r604800"
+          }
+
+          # Job Search 3: Staff Engineer - Spain
+          payload_3 = {
+              "title": "Staff Engineer",
+              "location": "spain",
+              "limit": 50,
+              "contractType": ["F"],
+              "experienceLevel": ["4", "5"],   # 4 = Senior, 5 = Director/VP
+              "datePosted": "r604800"
+          }
+
+          # Job Search 4: Frontend Lead - Madrid
+          payload_4 = {
+              "title": "Frontend Lead",
+              "location": "madrid",
+              "limit": 50,
+              "contractType": ["F"],
+              "experienceLevel": ["4", "5"],
+              "datePosted": "r604800"
+          }
+
+          # Lista de todas as buscas
+          searches = [
+              ("Senior Frontend Engineer - Madrid", payload_1),
+              ("React Developer Remote - Spain", payload_2),
+              ("Staff Engineer - Spain", payload_3),
+              ("Frontend Lead - Madrid", payload_4)
+          ]
+
           url = f"https://api.apify.com/v2/acts/{ACTOR_ID}/runs"
           headers = {
               "Authorization": f"Bearer {API_TOKEN}",
               "Content-Type": "application/json"
           }
 
-          print(f"🚀 [{datetime.now()}] Starting LinkedIn scraper...")
-          print(f"📊 Queries: {len(payload['searchQueries'])}")
-          print(f"🎯 Max results per query: {payload['maxResults']}")
-          
-          response = requests.post(url, json=payload, headers=headers)
+          print("=" * 60)
+          print(f"🚀 LINKEDIN JOB SCRAPER - Multiple Searches")
+          print(f"⏰ Started: {datetime.now()}")
+          print("=" * 60)
 
-          if response.status_code == 201:
-              data = response.json()['data']
-              run_id = data['id']
-              print(f"✅ Scraper started successfully!")
-              print(f"🔗 Run ID: {run_id}")
-              print(f"📊 Monitor: https://console.apify.com/actors/runs/{run_id}")
-              print(f"⏱️  Expected duration: 3-5 minutes")
+          all_run_ids = []
+
+          for search_name, payload in searches:
+              print(f"\n📊 Starting search: {search_name}")
+              print(f"   Title: {payload['title']}")
+              print(f"   Location: {payload['location']}")
+              print(f"   Limit: {payload['limit']}")
               
-              # Guardar run ID para referência
-              with open('last_run.txt', 'w') as f:
-                  f.write(f"{run_id}\n")
-                  f.write(f"{datetime.now().isoformat()}\n")
-              
-              print("\n📧 You will receive results via:")
-              print("   1. Apify Console: https://console.apify.com/actors/runs")
-              print("   2. Email notification (if configured)")
-              
-          else:
-              print(f"❌ Error starting scraper: {response.status_code}")
-              print(f"Response: {response.text}")
+              response = requests.post(url, json=payload, headers=headers)
+
+              if response.status_code == 201:
+                  run_id = response.json()['data']['id']
+                  all_run_ids.append((search_name, run_id))
+                  print(f"   ✅ Started! Run ID: {run_id}")
+              else:
+                  print(f"   ❌ Error: {response.status_code}")
+                  print(f"   Response: {response.text}")
+
+          print("\n" + "=" * 60)
+          print("📋 SUMMARY")
+          print("=" * 60)
+          print(f"Total searches: {len(searches)}")
+          print(f"Successful: {len(all_run_ids)}")
+          print("\n🔗 Monitor your runs:")
+          
+          for search_name, run_id in all_run_ids:
+              print(f"  • {search_name}")
+              print(f"    https://console.apify.com/actors/runs/{run_id}")
+          
+          print("\n⏱️  Expected completion: 3-5 minutes per search")
+          print("📥 Results will be available in Apify Console")
+          print("=" * 60)
+
+          # Guardar run IDs para referência
+          with open('last_runs.txt', 'w') as f:
+              for search_name, run_id in all_run_ids:
+                  f.write(f"{search_name}: {run_id}\n")
+              f.write(f"\nTimestamp: {datetime.now().isoformat()}\n")
+          
+          # Exit com erro se nenhuma busca funcionou
+          if len(all_run_ids) == 0:
+              print("\n❌ All searches failed!")
               exit(1)
+          
+          print("\n✅ Workflow completed successfully!")
           EOF
 
       - name: Upload run info
         uses: actions/upload-artifact@v4
         with:
-          name: scraper-run-info
-          path: last_run.txt
+          name: scraper-run-info-${{ github.run_number }}
+          path: last_runs.txt
           retention-days: 30
 
       - name: Summary
         run: |
-          echo "## 🎯 LinkedIn Job Scraper Execution" >> $GITHUB_STEP_SUMMARY
+          echo "## 🎯 LinkedIn Job Scraper - Multiple Searches" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "**Status:** ✅ Completed" >> $GITHUB_STEP_SUMMARY
           echo "**Time:** $(date)" >> $GITHUB_STEP_SUMMARY
-          echo "**Run ID:** $(cat last_run.txt | head -n 1)" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📊 Configuration" >> $GITHUB_STEP_SUMMARY
-          echo "- Queries: 4" >> $GITHUB_STEP_SUMMARY
-          echo "- Jobs per query: 50" >> $GITHUB_STEP_SUMMARY
-          echo "- Total expected: ~200 jobs" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Searches Executed" >> $GITHUB_STEP_SUMMARY
+          echo "1. Senior Frontend Engineer - Madrid" >> $GITHUB_STEP_SUMMARY
+          echo "2. React Developer Remote - Spain" >> $GITHUB_STEP_SUMMARY
+          echo "3. Staff Engineer - Spain" >> $GITHUB_STEP_SUMMARY
+          echo "4. Frontend Lead - Madrid" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### 🔗 View Results" >> $GITHUB_STEP_SUMMARY
           echo "[Open Apify Console](https://console.apify.com/actors/runs)" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 Run IDs" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          cat last_runs.txt >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
