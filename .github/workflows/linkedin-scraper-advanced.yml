@@ -2,7 +2,7 @@ name: LinkedIn Scraper Advanced (RIGGeqD6RqKmlVoQU)
 
 on:
   schedule:
-    - cron: '0 9 */3 * *'  # A cada 3 dias às 09:00 UTC
+    - cron: '0 9 */4 * *'  # A cada 3 dias às 09:00 UTC
   workflow_dispatch:
 
 jobs:
@@ -42,29 +42,29 @@ jobs:
           
           searches = [
               {
-                  "name": "Senior Frontend Engineer - Madrid",
+                  "name": "Senior Frontend Engineer",
                   "payload": {
                       "title": "Senior Frontend Engineer",
-                      "location": "madrid",
-                      "limit": 50,
-                      "contractType": ["F"],
-                      "experienceLevel": ["4"],
-                      "datePosted": "r604800"
-                  }
-              },
-              {
-                  "name": "React Developer Remote - Spain",
-                  "payload": {
-                      "title": "React Developer Remote",
                       "location": "spain",
                       "limit": 50,
                       "contractType": ["F"],
-                      "experienceLevel": ["4"],
+                      "experienceLevel": [4"],
                       "datePosted": "r604800"
                   }
               },
               {
-                  "name": "Staff Engineer - Spain",
+                  "name": "Desarrollador React",
+                  "payload": {
+                      "title": "Desarrollador React",
+                      "location": "spain",
+                      "limit": 50,
+                      "contractType": ["F"],
+                      "experienceLevel": [4"],
+                      "datePosted": "r604800"
+                  }
+              },
+              {
+                  "name": "Staff Engineer",
                   "payload": {
                       "title": "Staff Engineer",
                       "location": "spain",
@@ -75,13 +75,24 @@ jobs:
                   }
               },
               {
-                  "name": "Frontend Lead - Madrid",
+                  "name": "Frontend Lead",
                   "payload": {
                       "title": "Frontend Lead",
-                      "location": "madrid",
+                      "location": "spain",
                       "limit": 50,
                       "contractType": ["F"],
                       "experienceLevel": ["4", "5"],
+                      "datePosted": "r604800"
+                  }
+              },
+              {
+                  "name": "Fullstack Software Engineer",
+                  "payload": {
+                      "title": "Fullstack Software Engineer ",
+                      "location": "spain",
+                      "limit": 50,
+                      "contractType": ["F"],
+                      "experienceLevel": ["4"],
                       "datePosted": "r604800"
                   }
               }

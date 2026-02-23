@@ -96,7 +96,7 @@ No mesmo ficheiro, muda o cron:
 
 ```yaml
 schedule:
-  - cron: '0 9 */3 * *'  # A cada 3 dias às 09:00 UTC
+  - cron: '0 9 */4 * *'  # A cada 4 dias às 09:00 UTC
 ```
 
 Exemplos:
@@ -227,12 +227,5 @@ Depois de configurar, podes:
 3. **Email automático** com vagas novas
 4. **Dashboard** com estatísticas
 
-Queres ajuda com algum destes? 😊
-
-## 🙋‍♀️ Suporte
-
-Problemas? Abre uma Issue neste repo!
-
----
 
 **Feito com ❤️ para automatizar a busca de emprego**

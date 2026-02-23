@@ -3,7 +3,7 @@ name: LinkedIn Job Scraper (RIGGeqD6RqKmlVoQU)
 on:
   # Runs automaticamente a cada 3 dias às 09:00 UTC (10:00 em Portugal)
   schedule:
-    - cron: '0 9 */3 * *'
+  #  - cron: '0 9 */3 * *'
   
   # Permite executar manualmente
   workflow_dispatch:
