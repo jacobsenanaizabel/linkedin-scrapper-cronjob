@@ -48,7 +48,7 @@ jobs:
                       "location": "spain",
                       "limit": 50,
                       "contractType": ["F"],
-                      "experienceLevel": [4"],
+                      "experienceLevel": ["4"],
                       "datePosted": "r604800"
                   }
               },
@@ -59,7 +59,7 @@ jobs:
                       "location": "spain",
                       "limit": 50,
                       "contractType": ["F"],
-                      "experienceLevel": [4"],
+                      "experienceLevel": ["4"],
                       "datePosted": "r604800"
                   }
               },
