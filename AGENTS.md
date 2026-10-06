@@ -16,7 +16,7 @@ The Python scraper lives inline in the workflow YAML; all search settings come f
 
 | Path | Purpose |
 |------|---------|
-| `config.json` | **Single source of truth**: titles, `descriptionMustContain`, `excludeKeywords`, `maxAgeHours`, per-site settings (`sources.*`: `enabled`, `actor`, limits). `_help` documents every field. |
+| `config.json` | **Single source of truth**: titles, `descriptionMustContain`, `excludeKeywords`, `excludeCompanies`, `maxAgeHours`, per-site settings (`sources.*`: `enabled`, `actor`, limits). `_help` documents every field. |
 | `.github/workflows/linkedin-scraper-advanced.yml` | Main workflow (cron or `workflow_dispatch` with optional inputs `sources`, `test_limit`): reads `config.json`, starts the searches, waits, downloads, filters, dedupes, saves JSON/CSV, uploads artifacts. No search values are hardcoded here. |
 | `.github/workflows/linkedin-scraper.yml` | Legacy LinkedIn-only workflow (schedule disabled, manual only) |
 | `scripts/run_local.py` | Runs the workflow's inline Python locally. Token from `APIFY_TOKEN` or `.env`. `python scripts/run_local.py tecnoempleo,infojobs 5` = only those sites, 5 results per title. |
@@ -33,7 +33,7 @@ Use this when searching, filtering or ranking jobs:
 - **Location:** Madrid / Spain, or Remote (EU timezone)
 - **Contract:** Full-time
 - **Seniority:** Mid-Senior and above
-- **Exclude:** consultancies, outsourcing, body shops (`excludeKeywords` in `config.json`)
+- **Exclude:** consultancies and body shops (`excludeKeywords` / `excludeCompanies` in `config.json`). Outsourcing companies are welcome.
 
 `config.json` is the source of truth — if it changes, it wins over this section.
 
@@ -55,7 +55,8 @@ one Apify run per title per site. Manfred is read in full from its API.
    script re-checks `publishDateISO` / `published_at` / `postedAt` / Manfred `lastStatusChange`). Unknown dates are kept.
 2. **`descriptionMustContain`** — at least one word in the description or technologies list. The title does NOT count,
    so titles in `config.json` must not contain "React".
-3. **`excludeKeywords`** — dropped if the title or company contains one.
+3. **`excludeKeywords` / `excludeCompanies`** — dropped if the title or company contains a keyword, or the company
+   name (normalized like the dedupe key) is exactly one of `excludeCompanies`.
 4. **Dedupe** — key = normalized title + company (no accents/case/punctuation; falls back to URL). The kept job
    gets `_found_in` with every `source: search` that returned it. `summary.json` has `duplicates_removed`.
 

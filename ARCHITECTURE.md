@@ -27,6 +27,7 @@ or locally (`scripts/run_local.py`, also used by the agent).
                          │         config.json          │  ◄── SINGLE SOURCE OF TRUTH
                          │  titles · descriptionMust-   │      (edit only here)
                          │  Contain · excludeKeywords · │
+                         │  excludeCompanies ·          │
                          │  maxAgeHours · sources.*     │
                          └──────┬────────────────┬──────┘
                        read by  │                │   read by

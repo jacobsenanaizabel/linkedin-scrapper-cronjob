@@ -60,7 +60,7 @@ Use whichever fit the request:
 
 1. Search broadly (English and Spanish titles: "Senior Frontend Engineer", "Desarrollador Frontend Senior", "Staff Engineer", "Frontend Lead").
 2. Deduplicate by company + title.
-3. Drop anything matching `excludeKeywords`, consultancies/outsourcing, non-full-time, or junior roles.
+3. Drop anything matching `excludeKeywords`, consultancies, non-full-time, or junior roles. Outsourcing companies are fine — keep them.
 4. Verify each shortlisted job with WebFetch: the posting is still open, location/remote policy is real, and the URL works. If you can't verify, say so — never invent a posting, salary or URL.
 5. Score each job 1–5 on: stack fit, seniority fit, location/remote fit, company quality.
 

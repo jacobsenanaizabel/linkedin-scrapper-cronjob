@@ -62,7 +62,7 @@ Everything is in `config.json`:
 ```json
 "titles": ["Senior Frontend Engineer", "Tech Lead"],   ← titles to search
 "descriptionMustContain": ["react"],                   ← required in the description
-"excludeKeywords": ["consulting", "outsourcing"],      ← dropped if in title/company
+"excludeKeywords": ["consulting", "body shop"],        ← dropped if in title/company
 "maxAgeHours": 24,                                     ← only recent jobs
 "sources": { "linkedin": { "enabled": true, "limit": 50 } }
 ```

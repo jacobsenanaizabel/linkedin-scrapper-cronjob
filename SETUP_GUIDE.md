@@ -114,7 +114,7 @@ Edit `config.json` (the single source of truth — never edit searches in the wo
   "Your title here"             ← add more
 ],
 "descriptionMustContain": ["react"],
-"excludeKeywords": ["consulting", "outsourcing"],
+"excludeKeywords": ["consulting", "body shop"],
 "maxAgeHours": 24
 ```
 
