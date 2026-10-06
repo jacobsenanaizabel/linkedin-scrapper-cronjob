@@ -1,2 +1,14 @@
 Python
-config.json
+
+# Local Apify token (never commit)
+.env
+
+# Scraper output (delivered as GitHub artifacts)
+local-output/
+jobs_latest.json
+jobs_latest.csv
+summary.json
+run_info.json
+
+# Results downloaded from GitHub by the agent
+results/

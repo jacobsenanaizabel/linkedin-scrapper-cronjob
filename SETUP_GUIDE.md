@@ -1,307 +1,165 @@
-# 📝 GUIA PASSO-A-PASSO - SETUP COMPLETO
+# 📝 Step-by-Step Setup Guide
 
-## ⏱️ Tempo estimado: 15-20 minutos
-
----
-
-## 🎯 PASSO 1: CRIAR CONTA GITHUB (5 min)
-
-### Se já tens conta GitHub → Pula para Passo 2
-
-### Se NÃO tens conta:
-
-1. **Vai a:** https://github.com/signup
-2. **Preenche:**
-   ```
-   Email: o-teu-email@exemplo.com
-   Password: [escolhe uma senha forte]
-   Username: anaizabeljacobsen (ou outro)
-   ```
-3. **Verifica o email** que GitHub enviar
-4. **Login:** https://github.com/login
-
-✅ **Pronto! Conta criada.**
+## ⏱️ Estimated time: 15 minutes
 
 ---
 
-## 🗂️ PASSO 2: CRIAR REPOSITÓRIO (3 min)
+## 🎯 STEP 1: Get the repository (2 min)
 
-1. **Login no GitHub** → https://github.com
+Fork or clone this repository into your GitHub account:
 
-2. **Clica no botão `+`** (canto superior direito) → `New repository`
-
-3. **Preenche o formulário:**
-   ```
-   Repository name: linkedin-job-scraper
-   Description: Automated LinkedIn job scraper for Senior Frontend positions
-   
-   Visibilidade:
-   ⚪ Public (RECOMENDADO - grátis, workflows ilimitados)
-   ○ Private (também grátis, mas com limite de minutos)
-   
-   Inicialização:
-   ✅ Add a README file
-   ✅ Add .gitignore → seleciona "Python"
-   ○ Choose a license (opcional)
-   ```
-
-4. **Clica** `Create repository` (botão verde)
-
-✅ **Repositório criado!** URL será algo como:
-```
-https://github.com/anaizabeljacobsen/linkedin-job-scraper
+```bash
+git clone https://github.com/<your-username>/linkedin-scrapper-cronjob.git
 ```
 
+**Visibility:** public repos get unlimited GitHub Actions minutes; private repos get 2,000 min/month for free.
+
 ---
 
-## 🔐 PASSO 3: ADICIONAR APIFY TOKEN (2 min)
+## 🔐 STEP 2: Create the Apify token (3 min)
 
-1. **No teu repositório**, clica no tab **Settings** (🔧)
+1. **Go to** https://console.apify.com (create an account if you don't have one — the free tier gives $5/month)
+2. **Settings** → **API & Integrations** → **Personal API tokens**
+3. Click **+ Create a new token** (e.g. `job-scraper`) and copy it — it starts with `apify_api_`
 
-2. **Menu lateral esquerdo** → **Secrets and variables** → **Actions**
+⚠️ Never paste the token into a file that gets committed, an issue or a chat.
 
-3. **Clica** botão verde `New repository secret`
+---
 
-4. **Preenche:**
+## 🔑 STEP 3: Add the token to GitHub (2 min)
+
+1. **In your repository**, click the **Settings** tab (🔧)
+2. **Left menu** → **Secrets and variables** → **Actions**
+3. Click the green **New repository secret** button
+4. **Fill in:**
    ```
-   Name: APIFY_TOKEN
-   
+   Name:   APIFY_TOKEN
    Secret: YOUR_APIFY_TOKEN_HERE
    ```
+5. Click **Add secret**
 
-5. **Clica** `Add secret`
-
-✅ **Secret configurado!** Aparecerá na lista como `APIFY_TOKEN`
-
----
-
-## 📄 PASSO 4: ADICIONAR FICHEIROS (5 min)
-
-Vais adicionar 3 ficheiros ao repositório:
-
-### 4.1 Criar estrutura de pastas
-
-1. **No repositório**, clica `Add file` → `Create new file`
-
-2. **Nome do ficheiro:**
-   ```
-   .github/workflows/linkedin-scraper.yml
-   ```
-   
-   ⚠️ **IMPORTANTE:** Escreve EXATAMENTE assim, com os `/`
-   
-   O GitHub vai criar automaticamente as pastas `.github` e `workflows`
-
-3. **Cola o conteúdo:**
-   - Abre o ficheiro `linkedin-scraper.yml` que te dei
-   - Copia TODO o conteúdo
-   - Cola na caixa de texto
-
-4. **Scroll down** → Clica `Commit new file` (botão verde)
-
-✅ **Workflow básico criado!**
+✅ **Secret configured!** It will show up in the list as `APIFY_TOKEN`.
 
 ---
 
-### 4.2 (OPCIONAL) Adicionar workflow avançado
+## ✅ STEP 4: Enable GitHub Actions (1 min)
 
-Se quiseres download automático dos resultados:
-
-1. **Clica** `Add file` → `Create new file`
-
-2. **Nome:**
-   ```
-   .github/workflows/linkedin-scraper-advanced.yml
-   ```
-
-3. **Cola o conteúdo** do ficheiro `linkedin-scraper-advanced.yml`
-
-4. **Commit new file**
-
-✅ **Workflow avançado criado!**
+1. **Click the** `Actions` tab (▶️)
+2. If a confirmation message appears, click **I understand my workflows, go ahead and enable them**
+3. You'll see the workflows:
+   - `LinkedIn Scraper Advanced (...)` — the main one
+   - `LinkedIn Job Scraper (...)` — legacy, LinkedIn only
 
 ---
 
-### 4.3 Adicionar ficheiro de configuração
+## 🚀 STEP 5: First run (5 min)
 
-1. **Clica** `Add file` → `Create new file`
+Start with a cheap test run:
 
-2. **Nome:**
+1. **In the Actions tab**, click **`LinkedIn Scraper Advanced`**
+2. **On the right**, click `Run workflow`
+3. Fill in the optional inputs:
    ```
-   config.json
+   Branch:     main
+   sources:    tecnoempleo,infojobs
+   test_limit: 5
    ```
+4. Click the green `Run workflow`
+5. **Wait a few seconds** → refresh the page; a new run appears (🟡 = running)
+6. **Click the run** to follow the logs live
+7. **Wait 3–10 minutes** → status changes to ✅ (success) or ❌ (error)
 
-3. **Cola o conteúdo** do ficheiro `config.json`
+### 📊 See the results
 
-4. **Commit new file**
+1. **Scroll down** on the run page
+2. **Artifacts** section → `📦 linkedin-jobs-<number>`
+3. **Click** to download (ZIP)
+4. **Unzip** → you get:
+   - `jobs_latest.json` - Full data
+   - `jobs_latest.csv` - For Excel/Sheets
+   - `summary.json` - Jobs per search, duplicates removed
+   - `run_info.json` - Links to each Apify run
 
-✅ **Configuração criada!**
+The run page also shows a summary, and the log explains what each filter dropped:
+```
+🕐 Kept 12/25 from the last 24h
+🔎 Kept 5/12 with ['react'] in the description
+🚫 Kept 4/5 without ['consultoria', ...]
+🧹 Removed 3 duplicates → 21 unique jobs
+```
+
+✅ **First run done!**
 
 ---
 
-## ✅ PASSO 5: ATIVAR GITHUB ACTIONS (1 min)
+## 🔄 STEP 6: Automatic runs
 
-1. **Clica no tab** `Actions` (▶️)
+Already configured! 🎉 The workflow runs **automatically**:
+- ⏰ **When:** Sunday, Monday and Tuesday
+- 🕐 **Time:** 09:00 UTC
 
-2. Se aparecer mensagem de confirmação:
-   - **Clica** `I understand my workflows, go ahead and enable them`
-
-3. Verás a lista de workflows:
-   - `LinkedIn Job Scraper` (básico)
-   - `LinkedIn Scraper + Results Download` (avançado) - se criaste
-
-✅ **Actions ativado!**
+To **check the next run**: Actions tab → workflow → the schedule is shown on the right.
 
 ---
 
-## 🚀 PASSO 6: TESTAR (PRIMEIRA EXECUÇÃO) (5 min)
+## ⚙️ STEP 7: Customize (optional)
 
-Vamos executar manualmente para testar:
+### Change what is searched
 
-1. **No tab Actions**, clica em **`LinkedIn Job Scraper`** (ou o avançado)
+Edit `config.json` (the single source of truth — never edit searches in the workflow):
 
-2. **Lado direito**, clica botão `Run workflow`
+```json
+"titles": [
+  "Senior Frontend Engineer",   ← edit
+  "Your title here"             ← add more
+],
+"descriptionMustContain": ["react"],
+"excludeKeywords": ["consulting", "outsourcing"],
+"maxAgeHours": 24
+```
 
-3. **Dropdown** que aparece → **Branch: main** → Clica `Run workflow` (verde)
+Every field is explained in `_help` inside the file. Commit the change and the next run uses it.
 
-4. **Aguarda 5-10 segundos** → Refresh a página
+### Change the schedule
 
-5. Verás uma nova execução aparecer (bolinha amarela 🟡 = running)
-
-6. **Clica na execução** para ver logs em tempo real
-
-7. **Aguarda 3-5 minutos** → Status muda para ✅ (sucesso) ou ❌ (erro)
-
----
-
-### 📊 Ver Resultados (se usaste workflow avançado):
-
-1. **Scroll down** na página da execução
-
-2. Secção **Artifacts** → Verás:
-   ```
-   📦 linkedin-jobs-[número]
-   ```
-
-3. **Clica** para fazer download (ZIP)
-
-4. **Descompacta** → Terás:
-   - `jobs_latest.json` - Dados completos
-   - `jobs_latest.csv` - Para Excel
-   - `summary.json` - Estatísticas
-
----
-
-### 🔗 Ver Resultados na Apify Console:
-
-1. **Nos logs** da execução, procura:
-   ```
-   📊 Monitor: https://console.apify.com/actors/runs/[ID]
-   ```
-
-2. **Clica no link** → Abre Apify Console
-
-3. **Dataset** tab → **Export** → Escolhe formato
-
-✅ **Primeira execução concluída!**
-
----
-
-## 🔄 PASSO 7: CONFIGURAR EXECUÇÃO AUTOMÁTICA
-
-Já está configurado! 🎉
-
-O workflow vai executar **automaticamente**:
-- ⏰ **Quando:** A cada 3 dias
-- 🕐 **Hora:** 09:00 UTC (10:00 em Portugal)
-- 🤖 **Sem fazer nada**
-
-Para **verificar próxima execução**:
-1. Tab **Actions**
-2. Workflow → Lado direito verás "Next run: [data/hora]"
-
----
-
-## ⚙️ PASSO 8: PERSONALIZAR (OPCIONAL)
-
-### Alterar as queries de pesquisa:
-
-**Opção A: Editar config.json**
-
-1. No repositório, clica em `config.json`
-2. Clica no ✏️ (Edit this file)
-3. Altera as queries:
-   ```json
-   "searchQueries": [
-       "Senior Frontend Engineer Madrid",  ← Edita aqui
-       "Tua query aqui",                   ← Adiciona mais
-   ]
-   ```
-4. **Commit changes**
-
-**Opção B: Editar workflow diretamente**
-
-1. `.github/workflows/linkedin-scraper.yml`
-2. Editar → Procura `searchQueries`
-3. Altera
-4. Commit
-
----
-
-### Alterar frequência:
-
-1. Edita `.github/workflows/linkedin-scraper.yml`
-2. Procura linha:
+1. Edit `.github/workflows/linkedin-scraper-advanced.yml`
+2. Find the line:
    ```yaml
-   cron: '0 9 */3 * *'
+   cron: '0 9 * * 0,1,2'
    ```
-3. Altera para:
-   - `'0 9 * * 1'` - Todas as segundas
-   - `'0 9 */7 * *'` - A cada 7 dias
-   - `'0 9 1 * *'` - Dia 1 do mês
+3. Change it, e.g.:
+   - `'0 9 * * 1'` - Every Monday
+   - `'0 9 * * 1-5'` - Weekdays
+   - `'0 9 1 * *'` - 1st day of the month
 
-Use: https://crontab.guru para ajudar
-
----
-
-## 🎉 CONCLUÍDO!
-
-Tudo configurado! Agora:
-
-✅ Scraper roda automaticamente a cada 3 dias  
-✅ Podes executar manualmente quando quiseres  
-✅ Resultados ficam disponíveis por 90 dias  
-✅ Custo: €0/mês (free tier)  
+Use https://crontab.guru for help.
 
 ---
 
-## 📧 PRÓXIMOS PASSOS (OPCIONAL)
+## 💻 STEP 8: Run locally / from Claude Code (optional)
 
-Quer receber notificações por email? Consulta o README.md secção "Notificações"
+1. Create `.env` in the repo root with `APIFY_TOKEN=<your token>` (git-ignored)
+2. `pip install requests pandas`
+3. `python scripts/run_local.py tecnoempleo,infojobs 5`
 
-Quer integrar com Google Sheets? Posso ajudar!
-
-Quer filtrar consultorias? Edita `excludeKeywords` no config.json
+In Claude Code, `/search-jobs` runs the scraper and ranks the results (see `AGENTS.md`).
+For runs on GitHub it needs the GitHub CLI: `winget install GitHub.cli` then `gh auth login`.
 
 ---
 
-## 🐛 PROBLEMAS?
+## 🐛 Problems?
 
-### Workflow não aparece em Actions
-→ Verifica se criaste o ficheiro no caminho correto:
-   `.github/workflows/linkedin-scraper.yml`
+### The workflow doesn't show up in Actions
+→ Check the file path: `.github/workflows/linkedin-scraper-advanced.yml`
 
 ### "Resource not accessible by integration"
 → Settings → Actions → General → Workflow permissions → Read and write
 
-### Scraper falha
-→ Verifica:
-1. Secret `APIFY_TOKEN` está correto?
-2. Tem crédito na Apify? https://console.apify.com/billing
+### The scraper fails
+→ Check:
+1. Is the `APIFY_TOKEN` secret correct?
+2. Do you have Apify credit? https://console.apify.com/billing
+3. `❌` lines in the run log
 
-### Dúvidas?
-→ Envia mensagem! 😊
-
----
-
-**Boa sorte na busca de emprego! 🚀**
+### Empty results
+→ Raise `maxAgeHours` or relax the filters in `config.json`.

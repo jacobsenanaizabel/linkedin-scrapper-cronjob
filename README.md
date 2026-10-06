@@ -1,157 +1,148 @@
-# 🤖 LinkedIn Job Scraper - Automated
+# 🤖 Job Scraper - Automated
 
-Scraper automático de vagas no LinkedIn usando GitHub Actions + Apify.
+Automated job scraper for **LinkedIn, Tecnoempleo, InfoJobs and Manfred**, using GitHub Actions + Apify.
 
-## 🎯 O que faz
+## 🎯 What it does
 
-- ✅ Executa **automaticamente a cada 3 dias**
-- ✅ Procura vagas Senior/Staff Frontend Engineer em Madrid/Remoto
-- ✅ Extrai ~200 vagas por execução
-- ✅ Inclui detalhes da empresa + info dos recrutadores
-- ✅ Gera JSON + CSV para download
-- ✅ **Custo: €0** (dentro do free tier da Apify)
+- ✅ Runs **automatically on Sunday, Monday and Tuesday** at 09:00 UTC
+- ✅ Searches Senior / Staff / Lead engineering roles in Spain (titles in `config.json`)
+- ✅ Keeps only jobs from the **last 24 hours** whose **description mentions React**
+- ✅ Drops consultancies / outsourcing and removes duplicates across searches and sites
+- ✅ Produces JSON + CSV files to download
+- ✅ Can be triggered by the Claude Code agent with `/search-jobs`
 
-## 📋 Setup Inicial
+> Architecture and workflow diagrams: [ARCHITECTURE.md](ARCHITECTURE.md)
 
-### 1. Fork/Clone este repo
+## 📋 Initial Setup
+
+### 1. Clone this repo
 
 ```bash
-# Se ainda não fizeste:
-# 1. Cria conta no GitHub
-# 2. Cria novo repo "linkedin-job-scraper"
-# 3. Adiciona estes ficheiros
+git clone https://github.com/<your-username>/linkedin-scrapper-cronjob.git
 ```
 
-### 2. Configurar Apify Token
+### 2. Configure the Apify token
 
-1. Vai a **Settings** → **Secrets and variables** → **Actions**
-2. Clica **New repository secret**
-3. Nome: `APIFY_TOKEN`
-4. Valor: `YOUR_APIFY_TOKEN_HERE`
-5. **Add secret**
+1. Get your token at https://console.apify.com/settings/integrations (**Personal API tokens**)
+2. In the GitHub repo go to **Settings** → **Secrets and variables** → **Actions**
+3. Click **New repository secret**
+4. Name: `APIFY_TOKEN`
+5. Value: `YOUR_APIFY_TOKEN_HERE`
+6. **Add secret**
 
-### 3. Ativar GitHub Actions
+### 3. Enable GitHub Actions
 
-1. Vai ao tab **Actions**
-2. Se pedir, clica **I understand my workflows, go ahead and enable them**
+1. Go to the **Actions** tab
+2. If asked, click **I understand my workflows, go ahead and enable them**
 
-## 🚀 Como Usar
+## 🚀 How to Use
 
-### Execução Automática
+### Automatic run
 
-O scraper roda **automaticamente**:
-- **Frequência:** A cada 3 dias
-- **Hora:** 09:00 UTC (10:00 em Portugal)
-- **Sem fazer nada!**
+The scraper runs **automatically**:
+- **Days:** Sunday, Monday and Tuesday
+- **Time:** 09:00 UTC
+- **Nothing to do!**
 
-### Execução Manual
+### Manual run
 
-Para executar agora (sem esperar 3 dias):
+To run it now (without waiting for the next schedule):
 
-1. Vai ao tab **Actions**
-2. Clica no workflow **"LinkedIn Job Scraper"**
-3. Clica **Run workflow** → **Run workflow**
-4. Aguarda 3-5 minutos
+1. Go to the **Actions** tab
+2. Click the **"LinkedIn Scraper Advanced"** workflow
+3. Click **Run workflow**. Optional inputs:
+   - `sources` — only these sites, e.g. `tecnoempleo,infojobs` (empty = all enabled in `config.json`)
+   - `test_limit` — max jobs per title on each site, e.g. `5` for a cheap test (empty = limits from `config.json`)
+4. Wait 3–15 minutes
 
-## 📥 Como Obter os Resultados
+### From Claude Code
 
-### Opção 1: Via GitHub (Recomendado)
+```
+/search-jobs                              → full run on GitHub
+/search-jobs tecnoempleo,infojobs 5       → only those sites, 5 jobs per title
+/search-jobs linkedin 10 local            → runs on your machine using .env
+```
 
-**Para o workflow avançado** (`linkedin-scraper-advanced.yml`):
+Requires the GitHub CLI (`gh auth login`) or a local `.env` file. See [AGENTS.md](AGENTS.md).
 
-1. Vai ao tab **Actions**
-2. Clica na execução mais recente
-3. Scroll down até **Artifacts**
+## 📥 Getting the Results
+
+### Option 1: GitHub (recommended)
+
+1. Go to the **Actions** tab
+2. Click the most recent run
+3. Scroll down to **Artifacts**
 4. Download:
-   - `jobs_latest.json` - Dados completos
-   - `jobs_latest.csv` - Para Excel/Sheets
-   - `summary.json` - Estatísticas rápidas
+   - `jobs_latest.json` - Full data (raw fields from each site)
+   - `jobs_latest.csv` - Same columns for every site, for Excel/Sheets
+   - `summary.json` - Jobs per search and duplicates removed
+   - `run_info.json` - Links to each Apify run
 
-**Ficheiros expiram em 90 dias**
+**Files expire after 90 days.**
 
-### Opção 2: Via Apify Console
+### Option 2: Apify Console
 
-1. Vai a https://console.apify.com/actors/runs
-2. Procura pelo run mais recente
-3. **Dataset** → **Export** → JSON/CSV/Excel
+1. Go to https://console.apify.com/actors/runs
+2. Find the most recent run
+3. **Dataset** → **Export** → JSON/CSV/Excel (raw results, before the filters)
 
-## ⚙️ Configuração
+## ⚙️ Configuration
 
-### Alterar Queries de Pesquisa
+**Everything the scraper searches for lives in `config.json`** — it is the single source of truth. The workflow only reads this file; you never need to edit the YAML to change searches or filters. Every field is explained in `_help` inside the file.
 
-Edita o ficheiro `.github/workflows/linkedin-scraper.yml`:
+| Field | What it does |
+|---|---|
+| `titles` | Job titles searched on each site (LinkedIn, Tecnoempleo, InfoJobs). Don't put "React" in the title. |
+| `descriptionMustContain` | The job **description** must contain one of these words (e.g. `react`). The title doesn't count. |
+| `excludeKeywords` | Drops jobs whose title or company contains one of these words (consultoria, outsourcing…). |
+| `maxAgeHours` | Only jobs published in the last N hours (e.g. `24`). |
+| `sources.<site>.enabled` | Turns each site on/off (`linkedin`, `tecnoempleo`, `infojobs`, `manfred`). |
+| `sources.<site>.limit` / `maxResults` | Max jobs per title on each site. |
+| `sources.linkedin.experienceLevel` / `jobType` | Seniority (`4` = Mid-Senior, `5` = Director) and contract type (`F` = full-time). |
 
-```python
-"searchQueries": [
-    "Senior Frontend Engineer Madrid",      # ← Edita aqui
-    "Staff Engineer React Spain Remote",    # ← Edita aqui
-    "Frontend Lead Next.js Madrid",         # ← Edita aqui
-    "Full Stack Engineer Node.js Madrid"    # ← Edita aqui
-],
-```
+Duplicate jobs (same title + company, across searches or sites) are merged into one; the `found_in` column in the CSV shows where it appeared.
 
-### Alterar Frequência
+### Change the schedule
 
-No mesmo ficheiro, muda o cron:
+In `.github/workflows/linkedin-scraper-advanced.yml`, change the cron:
 
 ```yaml
 schedule:
-  - cron: '0 9 */4 * *'  # A cada 4 dias às 09:00 UTC
+  - cron: '0 9 * * 0,1,2'  # Sunday, Monday and Tuesday at 09:00 UTC
 ```
 
-Exemplos:
-- `'0 9 * * 1'` - Todas as segundas às 09:00
-- `'0 9 */7 * *'` - A cada 7 dias às 09:00
-- `'0 9 1 * *'` - Dia 1 de cada mês às 09:00
+Examples:
+- `'0 9 * * 1'` - Every Monday at 09:00
+- `'0 9 * * 1-5'` - Monday to Friday at 09:00
+- `'0 9 1 * *'` - 1st day of every month at 09:00
 
-**Calculadora de Cron:** https://crontab.guru
+**Cron calculator:** https://crontab.guru
 
-### Alterar Número de Resultados
+### Cost per run
 
-```python
-"maxResults": 50,  # ← 50 jobs por query
-```
+Apify charges **per downloaded job, before the filters**. Maximum per run = `number of titles × (linkedin.limit + tecnoempleo.maxResults + infojobs.maxResults)`. With the 24h window the real number is usually much lower.
 
-**Atenção:** 
-- Mais resultados = mais custo
-- Free tier: ~500 jobs/mês
-- 4 queries × 50 jobs = 200 total (OK para free tier)
+| Site | Approx. price |
+|---|---|
+| LinkedIn | depends on the actor's plan |
+| Tecnoempleo | ~$0.0015 per job + $0.01 per run |
+| InfoJobs | ~$0.001 per job |
+| Manfred | free (public API) |
 
-### Alterar Filtros
+Apify's free tier gives $5 of credit per month. Check usage at https://console.apify.com/billing.
 
-```python
-"filters": {
-    "timePosted": "past24Hours",           # past24Hours, pastWeek, pastMonth
-    "experienceLevel": ["MID_SENIOR", "DIRECTOR"],  # ENTRY_LEVEL, ASSOCIATE, etc.
-    "jobType": ["FULL_TIME"],              # PART_TIME, CONTRACT, TEMPORARY, INTERNSHIP
-    "remote": ["REMOTE", "HYBRID"]         # ON_SITE, REMOTE, HYBRID
-}
-```
+### Test locally
 
-## 📊 Custos
+1. Create a `.env` file in the repo root with `APIFY_TOKEN=<your token>` (it's in `.gitignore`)
+2. `pip install requests pandas`
+3. `python scripts/run_local.py tecnoempleo,infojobs 5` — only those sites, 5 jobs per title (cheap)
+4. `python scripts/run_local.py` — everything, same as on GitHub
 
-### Free Tier (Atual)
+## 🔔 Notifications
 
-- **Apify:** $5 crédito/mês
-- **GitHub Actions:** 2.000 min/mês
-- **Configuração atual:** ~500 jobs/mês
-- **Custo:** **€0/mês** ✅
+### Get an email after each run
 
-### Se Ultrapassar Free Tier
-
-Se quiseres mais resultados:
-
-| Jobs/mês | Custo Apify |
-|----------|-------------|
-| 500 | €0 (free) |
-| 1.000 | €10-15 |
-| 2.000 | €20-30 |
-
-## 🔔 Notificações
-
-### Receber Email quando executar
-
-Adiciona no final do workflow:
+Add at the end of the workflow:
 
 ```yaml
 - name: Send Email
@@ -161,71 +152,63 @@ Adiciona no final do workflow:
     server_port: 465
     username: ${{ secrets.GMAIL_USER }}
     password: ${{ secrets.GMAIL_PASSWORD }}
-    subject: 🎯 LinkedIn Jobs - New Results
+    subject: 🎯 New jobs found
     body: Check GitHub Actions for results!
-    to: o-teu-email@exemplo.com
+    to: your-email@example.com
 ```
 
-**Secrets necessários:**
-- `GMAIL_USER`: teu Gmail
-- `GMAIL_PASSWORD`: App Password do Gmail
+**Required secrets:**
+- `GMAIL_USER`: your Gmail address
+- `GMAIL_PASSWORD`: a Gmail App Password
 
-## 📚 Estrutura dos Ficheiros
+## 📚 File Structure
 
 ```
-linkedin-job-scraper/
-├── .github/
-│   └── workflows/
-│       ├── linkedin-scraper.yml           # Workflow básico
-│       └── linkedin-scraper-advanced.yml  # Com download automático
-├── README.md                              # Este ficheiro
-└── jobs_latest.json                       # Gerado automaticamente
+linkedin-scrapper-cronjob/
+├── .github/workflows/
+│   ├── linkedin-scraper-advanced.yml   # Main workflow (reads config.json)
+│   └── linkedin-scraper.yml            # Legacy LinkedIn-only workflow (manual only)
+├── .claude/
+│   ├── agents/job-researcher.md        # Claude Code agent
+│   └── skills/search-jobs/SKILL.md     # /search-jobs command
+├── scripts/run_local.py                # Runs the workflow script locally
+├── config.json                         # Searches and filters (single source of truth)
+├── AGENTS.md / CLAUDE.md               # Context for AI agents
+├── ARCHITECTURE.md                     # Diagrams
+└── README.md                           # This file
 ```
 
 ## 🐛 Troubleshooting
 
-### Workflow não executa automaticamente
+### The workflow doesn't run automatically
 
-1. Vai a **Settings** → **Actions** → **General**
-2. Scroll down até **Workflow permissions**
-3. Ativa **Read and write permissions**
+1. Go to **Settings** → **Actions** → **General**
+2. Scroll down to **Workflow permissions**
+3. Enable **Read and write permissions**
 4. **Save**
+
+GitHub also disables scheduled workflows after 60 days without commits in the repo — re-enable it in the **Actions** tab.
 
 ### "Resource not accessible by integration"
 
-Mesmo que acima - permissões insuficientes.
+Same as above — insufficient permissions.
 
-### Scraper falha
+### The scraper fails
 
-Verifica:
-1. Apify token está correto?
-2. Tens crédito suficiente? (https://console.apify.com/billing)
-3. Query syntax está correta?
+Check:
+1. Is the `APIFY_TOKEN` secret correct?
+2. Do you have enough credit? (https://console.apify.com/billing)
+3. The run log: lines starting with `❌` show which search failed
 
-### Resultados vazios
+### Empty results
 
-Possíveis causas:
-- Queries muito específicas
-- Filtros muito restritivos
-- Período de tempo muito curto (`past24Hours`)
+Possible causes:
+- No new jobs in the last `maxAgeHours`
+- `descriptionMustContain` / `excludeKeywords` too strict
 
-**Solução:** Alarga os filtros ou muda `timePosted` para `pastWeek`.
+**Fix:** raise `maxAgeHours` (e.g. `168` for a week) or relax the filters in `config.json`. The log shows how many jobs each filter dropped (`🕐`, `🔎`, `🚫`).
 
-## 📖 Links Úteis
+## 📖 Useful Links
 
 - **Apify Console:** https://console.apify.com
-- **GitHub Actions Logs:** https://github.com/SEU-USERNAME/linkedin-job-scraper/actions
-- **Apify Scraper Docs:** https://apify.com/curious_coder/linkedin-jobs-scraper
-- **Cron Calculator:** https://crontab.guru
-
-## 💡 Próximos Passos
-
-Depois de configurar, podes:
-
-1. **Integrar com Google Sheets** (via Google Apps Script)
-2. **Filtrar por empresa** (adicionar blacklist de consultorias)
-3. **Email automático** com vagas novas
-4. **Dashboard** com estatísticas
-
-
-**Feito com ❤️ para automatizar a busca de emprego**
+- **Cron calculator:** https://crontab.guru

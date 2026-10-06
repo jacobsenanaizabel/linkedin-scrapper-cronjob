@@ -1,69 +1,64 @@
 {
-  "searchQueries": [
-    "Senior Frontend Engineer Madrid",
-    "Staff Engineer React Spain Remote",
-    "Frontend Lead Next.js Madrid",
-    "Full Stack Engineer Node.js Madrid Remote"
+  "titles": [
+    "Senior Frontend Engineer",
+    "Senior Full Stack Engineer",
+    "Senior Software Engineer",
+    "Tech Lead",
+    "Staff Engineer",
+    "Frontend Lead",
+    "Fullstack Software Engineer",
+    "Desarrollador Frontend",
+    "Senior Frontend Developer",
+    "Ingeniero de Software Senior"
   ],
-  "maxResults": 50,
-  "includeCompanyDetails": true,
-  "includeRecruiterInfo": true,
-  "filters": {
-    "timePosted": "past24Hours",
-    "experienceLevel": [
-      "MID_SENIOR",
-      "DIRECTOR"
-    ],
-    "jobType": [
-      "FULL_TIME"
-    ],
-    "remote": [
-      "REMOTE",
-      "HYBRID",
-      "ON_SITE"
-    ],
-    "companySize": [
-      "51-200",
-      "201-500",
-      "501-1000",
-      "1001-5000",
-      "5001-10000",
-      "10001+"
-    ]
-  },
+  "descriptionMustContain": [
+    "react"
+  ],
   "excludeKeywords": [
     "consultoria",
+    "consultoría",
     "consulting",
     "outsourcing",
     "body shop"
   ],
-  "notes": {
-    "timePosted_options": [
-      "past24Hours",
-      "pastWeek",
-      "pastMonth",
-      "any"
-    ],
-    "experienceLevel_options": [
-      "INTERNSHIP",
-      "ENTRY_LEVEL",
-      "ASSOCIATE",
-      "MID_SENIOR",
-      "DIRECTOR",
-      "EXECUTIVE"
-    ],
-    "jobType_options": [
-      "FULL_TIME",
-      "PART_TIME",
-      "CONTRACT",
-      "TEMPORARY",
-      "VOLUNTEER",
-      "INTERNSHIP"
-    ],
-    "remote_options": [
-      "ON_SITE",
-      "REMOTE",
-      "HYBRID"
-    ]
+  "maxAgeHours": 24,
+  "sources": {
+    "linkedin": {
+      "enabled": true,
+      "actor": "RIGGeqD6RqKmlVoQU",
+      "location": "Spain",
+      "limit": 50,
+      "experienceLevel": [
+        "4",
+        "5"
+      ],
+      "jobType": [
+        "F"
+      ]
+    },
+    "tecnoempleo": {
+      "enabled": true,
+      "actor": "blackfalcondata~tecnoempleo-scraper",
+      "province": "",
+      "maxResults": 25
+    },
+    "infojobs": {
+      "enabled": true,
+      "actor": "shahidirfan~infojobs-scraper",
+      "maxResults": 25
+    },
+    "manfred": {
+      "enabled": true
+    }
+  },
+  "_help": {
+    "titles": "Each title is searched on LinkedIn, Tecnoempleo and InfoJobs. Don't put 'React' in the title: that is checked in the description.",
+    "descriptionMustContain": "The description (or technologies list) must contain at least one of these words. The title doesn't count.",
+    "excludeKeywords": "Jobs whose title or company contains one of these words are dropped.",
+    "maxAgeHours": "Only jobs published in the last N hours. Each site rounds up to its closest filter (24h, 7 days, 15/30 days) and the script re-filters by the exact date.",
+    "linkedin.experienceLevel": "1 = Internship, 2 = Entry level, 3 = Associate, 4 = Mid-Senior, 5 = Director, 6 = Executive",
+    "linkedin.jobType": "F = Full-time, P = Part-time, C = Contract, T = Temporary, I = Internship, V = Volunteer",
+    "tecnoempleo.province": "Empty = all of Spain. E.g. 'Madrid', 'Barcelona'",
+    "limits": "linkedin.limit, tecnoempleo.maxResults and infojobs.maxResults are the max jobs per title. Apify charges per downloaded job, before the filters."
   }
 }

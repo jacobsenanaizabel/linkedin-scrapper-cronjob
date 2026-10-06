@@ -1,11 +1,11 @@
 name: LinkedIn Job Scraper (RIGGeqD6RqKmlVoQU)
 
 on:
-  # Runs automaticamente a cada 3 dias às 09:00 UTC (10:00 em Portugal)
+  # Schedule disabled — manual runs only
   schedule:
   #  - cron: '0 9 */3 * *'
   
-  # Permite executar manualmente
+  # Allow manual runs
   workflow_dispatch:
 
 jobs:
@@ -35,7 +35,7 @@ jobs:
           import os
           from datetime import datetime
 
-          # Configuração
+          # Configuration
           API_TOKEN = os.environ['APIFY_TOKEN']
           ACTOR_ID = "RIGGeqD6RqKmlVoQU"
 
@@ -46,7 +46,7 @@ jobs:
               "limit": 50,
               "contractType": ["F"],           # F = Full-time
               "experienceLevel": ["4"],        # 4 = Senior level
-              "datePosted": "r604800"          # r604800 = últimas 7 dias
+              "datePosted": "r604800"          # r604800 = last 7 days
           }
 
           # Job Search 2: React Developer - Spain Remote
@@ -79,7 +79,7 @@ jobs:
               "datePosted": "r604800"
           }
 
-          # Lista de todas as buscas
+          # All searches
           searches = [
               ("Senior Frontend Engineer - Madrid", payload_1),
               ("React Developer Remote - Spain", payload_2),
@@ -131,13 +131,13 @@ jobs:
           print("📥 Results will be available in Apify Console")
           print("=" * 60)
 
-          # Guardar run IDs para referência
+          # Keep run IDs for reference
           with open('last_runs.txt', 'w') as f:
               for search_name, run_id in all_run_ids:
                   f.write(f"{search_name}: {run_id}\n")
               f.write(f"\nTimestamp: {datetime.now().isoformat()}\n")
           
-          # Exit com erro se nenhuma busca funcionou
+          # Exit with an error if no search worked
           if len(all_run_ids) == 0:
               print("\n❌ All searches failed!")
               exit(1)

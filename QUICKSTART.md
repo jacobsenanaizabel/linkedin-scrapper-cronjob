@@ -1,139 +1,94 @@
-# ⚡ QUICK START - LinkedIn Job Scraper
+# ⚡ Quick Start - Job Scraper
 
-## 🎯 O QUE VAIS TER
+## 🎯 What you get
 
-✅ Scraper automático LinkedIn (GitHub Actions + Apify)  
-✅ Executa a cada 3 dias automaticamente  
-✅ ~200 vagas Senior/Staff Frontend por execução  
-✅ Dados completos: empresa, recrutador, salário, descrição  
-✅ Custo: **€0/mês** (free tier)  
-
----
-
-## 📦 FICHEIROS INCLUÍDOS
-
-```
-github-actions-package/
-├── SETUP_GUIDE.md                    ← COMECE AQUI (guia passo-a-passo)
-├── README.md                         ← Documentação completa
-├── config.json                       ← Configuração (edite as queries aqui)
-├── linkedin-scraper.yml              ← Workflow básico
-└── linkedin-scraper-advanced.yml     ← Workflow com download automático
-```
+✅ Automated job scraper for LinkedIn, Tecnoempleo, InfoJobs and Manfred (GitHub Actions + Apify)
+✅ Runs automatically on Sunday, Monday and Tuesday
+✅ Only jobs from the last 24h that mention React in the description
+✅ No consultancies, no duplicates
+✅ Results as JSON + CSV
 
 ---
 
-## 🚀 SETUP RÁPIDO (15 min)
+## 🚀 Quick setup (10 min)
 
-### 1️⃣ Criar conta GitHub (se não tiveres)
-→ https://github.com/signup
+### 1️⃣ Get an Apify token
+→ https://console.apify.com/settings/integrations → **Personal API tokens**
 
-### 2️⃣ Criar repositório
+### 2️⃣ Add the GitHub secret
 ```
-Nome: linkedin-job-scraper
-Visibilidade: Public (recomendado)
-✅ Add README
-```
+Repo → Settings → Secrets and variables → Actions → New repository secret
 
-### 3️⃣ Adicionar Secret
-```
-Settings → Secrets → Actions → New repository secret
-
-Nome: APIFY_TOKEN
-Valor: YOUR_APIFY_TOKEN_HERE
+Name:  APIFY_TOKEN
+Value: YOUR_APIFY_TOKEN_HERE
 ```
 
-### 4️⃣ Upload ficheiros
-
-**Método A: Via interface GitHub**
-1. Add file → Upload files
-2. Arrasta os ficheiros:
-   - Cria pasta `.github/workflows/`
-   - Coloca lá os `.yml`
-   - `config.json` na raiz
-
-**Método B: Manual (mais preciso)**
-1. Add file → Create new file
-2. Nome: `.github/workflows/linkedin-scraper.yml`
-3. Cola conteúdo do ficheiro
-4. Commit
-5. Repete para outros ficheiros
-
-### 5️⃣ Testar
-
+### 3️⃣ Enable Actions
 ```
-Actions → LinkedIn Job Scraper → Run workflow
+Actions tab → "I understand my workflows, go ahead and enable them"
 ```
 
-Aguarda 3-5 min → Verifica resultados!
+### 4️⃣ Test with a cheap run
+```
+Actions → LinkedIn Scraper Advanced → Run workflow
+  sources:    tecnoempleo,infojobs
+  test_limit: 5
+```
+
+Wait 3–10 min → check the results!
 
 ---
 
-## 📊 ONDE VER RESULTADOS
+## 📊 Where to see results
 
-### Opção 1: GitHub Artifacts (workflow avançado)
+### Option 1: GitHub Artifacts
 ```
-Actions → Execução mais recente → Scroll down → Artifacts
-Download: jobs_latest.json + jobs_latest.csv
+Actions → most recent run → scroll down → Artifacts
+Download: jobs_latest.json + jobs_latest.csv + summary.json
 ```
 
-### Opção 2: Apify Console
+### Option 2: Apify Console (raw, before filters)
 ```
 https://console.apify.com/actors/runs
-→ Último run → Dataset → Export
+→ Latest run → Dataset → Export
 ```
 
 ---
 
-## ⚙️ PERSONALIZAR
+## ⚙️ Customize
 
-### Mudar queries de pesquisa
-Edita `config.json`:
+Everything is in `config.json`:
+
 ```json
-"searchQueries": [
-    "Senior Frontend Engineer Madrid",  ← Edita
-    "Staff Engineer React Spain"        ← Edita
-]
+"titles": ["Senior Frontend Engineer", "Tech Lead"],   ← titles to search
+"descriptionMustContain": ["react"],                   ← required in the description
+"excludeKeywords": ["consulting", "outsourcing"],      ← dropped if in title/company
+"maxAgeHours": 24,                                     ← only recent jobs
+"sources": { "linkedin": { "enabled": true, "limit": 50 } }
 ```
 
-### Mudar frequência
-Edita `linkedin-scraper.yml`:
+To change the schedule, edit the `cron` in `.github/workflows/linkedin-scraper-advanced.yml`:
 ```yaml
-cron: '0 9 */3 * *'   ← A cada 3 dias
-      '0 9 * * 1'     ← Toda segunda
-      '0 9 */7 * *'   ← A cada 7 dias
+cron: '0 9 * * 0,1,2'   ← Sun, Mon, Tue
+      '0 9 * * 1'       ← every Monday
+      '0 9 * * 1-5'     ← weekdays
 ```
 
 ---
 
-## 💰 CUSTOS
+## 💰 Costs
 
-| Cenário | Jobs/mês | Custo |
-|---------|----------|-------|
-| **Atual** (4 queries × 50 jobs) | 600 | **€0** ✅ |
-| Moderado (10 queries × 50 jobs) | 1.500 | €10-15 |
-| Intensivo (10 queries × 100 jobs) | 3.000 | €20-30 |
+Apify charges per downloaded job, before filters. Max per run =
+`titles × (linkedin.limit + tecnoempleo.maxResults + infojobs.maxResults)`.
 
-**Free tier Apify:** $5/mês (~500 jobs)  
-**Free tier GitHub:** 2.000 min/mês (sobra muito!)
+**Apify free tier:** $5/month
+**GitHub free tier:** 2,000 min/month (public repos: unlimited)
 
 ---
 
-## 🔔 PRÓXIMAS MELHORIAS (Opcional)
+## 🆘 Help
 
-Depois de configurar, posso ajudar com:
-
-1. **Email automático** quando encontrar vagas
-2. **Google Sheets** integração (vagas vão direto para planilha)
-3. **Filtro de consultorias** (blacklist automática)
-4. **Dashboard** com estatísticas e gráficos
-5. **Telegram bot** para receber notificações
-
----
-
-## 🆘 AJUDA
-
-### Problema comum: "Resource not accessible"
+### "Resource not accessible"
 ```
 Settings → Actions → General
 → Workflow permissions
@@ -141,51 +96,34 @@ Settings → Actions → General
 → Save
 ```
 
-### Scraper não executa automaticamente
+### The scheduled run doesn't happen
 ```
-Actions → Workflow → Lado direito verás "Next run: [data]"
-Se não aparecer: reativa o workflow
+Actions → workflow → check it's not disabled
+(GitHub disables schedules after 60 days without commits)
 ```
 
-### Resultados vazios
+### Empty results
 ```
-Queries muito específicas?
-→ Alarga filtros em config.json
-→ Muda timePosted para "pastWeek"
+→ Raise maxAgeHours in config.json (e.g. 168 = one week)
+→ Relax descriptionMustContain / excludeKeywords
 ```
 
 ---
 
-## 📚 DOCUMENTAÇÃO
+## 📚 Docs
 
-- **Setup completo:** `SETUP_GUIDE.md` (passo-a-passo com screenshots mentais)
-- **Documentação técnica:** `README.md` (tudo sobre o projeto)
-- **Configuração:** `config.json` (edite queries aqui)
-
----
-
-## ✅ CHECKLIST FINAL
-
-Antes de terminar, verifica:
-
-- [ ] Repositório criado no GitHub
-- [ ] Secret `APIFY_TOKEN` adicionado
-- [ ] Ficheiro `.github/workflows/linkedin-scraper.yml` criado
-- [ ] Workflow executado manualmente 1x (teste)
-- [ ] Resultados verificados (Artifacts ou Apify Console)
-- [ ] Queries personalizadas em `config.json`
-- [ ] Próxima execução agendada (visível em Actions)
+- **Full docs:** `README.md`
+- **Step-by-step setup:** `SETUP_GUIDE.md`
+- **Architecture:** `ARCHITECTURE.md`
+- **Configuration:** `config.json` (see `_help` inside)
 
 ---
 
-## 🎉 PRONTO!
+## ✅ Checklist
 
-Agora tens um scraper automático de vagas do LinkedIn rodando 24/7 na cloud, de graça!
-
-**Dúvidas?** Consulta `SETUP_GUIDE.md` ou pergunta! 😊
-
----
-
-**Boa sorte na busca de emprego! 🚀**
-
-P.S.: Quando conseguires a vaga, celebra comigo! 🎊
+- [ ] `APIFY_TOKEN` secret added
+- [ ] Actions enabled
+- [ ] Test run with `test_limit: 5` succeeded
+- [ ] Results checked (Artifacts)
+- [ ] `config.json` adjusted to your profile
+- [ ] Next scheduled run visible in Actions

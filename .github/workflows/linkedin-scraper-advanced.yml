@@ -2,8 +2,17 @@ name: LinkedIn Scraper Advanced (RIGGeqD6RqKmlVoQU)
 
 on:
   schedule:
-    - cron: '0 9 */4 * *'  # A cada 3 dias às 09:00 UTC
+    - cron: '0 9 * * 0,1,2'  # Sunday, Monday and Tuesday at 09:00 UTC
   workflow_dispatch:
+    inputs:
+      sources:
+        description: 'Sites to search, comma-separated (empty = all enabled in config.json). E.g. tecnoempleo,infojobs'
+        required: false
+        default: ''
+      test_limit:
+        description: 'Max jobs per title on each site (empty = limits from config.json). E.g. 5 for a cheap test'
+        required: false
+        default: ''
 
 jobs:
   scrape-and-download:
@@ -24,105 +33,172 @@ jobs:
       - name: Run Scraper and Download Results
         env:
           APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          SOURCES: ${{ inputs.sources }}
+          TEST_LIMIT: ${{ inputs.test_limit }}
         run: |
           python3 << 'EOF'
           import requests
           import json
           import time
           import os
-          from datetime import datetime
+          from datetime import datetime, timedelta, timezone
           import pandas as pd
+          import re
+          import unicodedata
+          from urllib.parse import urlencode
 
           API_TOKEN = os.environ['APIFY_TOKEN']
-          ACTOR_ID = "RIGGeqD6RqKmlVoQU"
 
           # ===================================================================
-          # CONFIGURAÇÃO DAS BUSCAS
+          # CONFIGURATION — everything comes from config.json (single source of truth)
           # ===================================================================
-          
-          searches = [
-              {
-                  "name": "Senior Frontend Engineer",
-                  "payload": {
-                      "title": "Senior Frontend Engineer",
-                      "location": "spain",
-                      "limit": 50,
-                      "contractType": ["F"],
-                      "experienceLevel": ["4"],
-                      "datePosted": "r604800"
-                  }
-              },
-              {
-                  "name": "Desarrollador React",
-                  "payload": {
-                      "title": "Desarrollador React",
-                      "location": "spain",
-                      "limit": 50,
-                      "contractType": ["F"],
-                      "experienceLevel": ["4"],
-                      "datePosted": "r604800"
-                  }
-              },
-              {
-                  "name": "Staff Engineer",
-                  "payload": {
-                      "title": "Staff Engineer",
-                      "location": "spain",
-                      "limit": 50,
-                      "contractType": ["F"],
-                      "experienceLevel": ["4", "5"],
-                      "datePosted": "r604800"
-                  }
-              },
-              {
-                  "name": "Frontend Lead",
-                  "payload": {
-                      "title": "Frontend Lead",
-                      "location": "spain",
-                      "limit": 50,
-                      "contractType": ["F"],
-                      "experienceLevel": ["4", "5"],
-                      "datePosted": "r604800"
-                  }
-              },
-              {
-                  "name": "Fullstack Software Engineer",
-                  "payload": {
-                      "title": "Fullstack Software Engineer ",
-                      "location": "spain",
-                      "limit": 50,
-                      "contractType": ["F"],
-                      "experienceLevel": ["4"],
-                      "datePosted": "r604800"
-                  }
-              }
-          ]
+
+          with open('config.json', encoding='utf-8') as f:
+              CONFIG = json.load(f)
+
+          TITLES = CONFIG['titles']
+          MUST_CONTAIN = [w.lower() for w in CONFIG.get('descriptionMustContain', [])]
+          EXCLUDE = [w.lower() for w in CONFIG.get('excludeKeywords', [])]
+          MAX_AGE_HOURS = CONFIG.get('maxAgeHours', 24)
+          SOURCES = {name: cfg for name, cfg in CONFIG['sources'].items() if cfg.get('enabled', True)}
+
+          # Test options: SOURCES=tecnoempleo,infojobs  TEST_LIMIT=5
+          if os.environ.get('SOURCES'):
+              SOURCES = {name: cfg for name, cfg in SOURCES.items() if name in os.environ['SOURCES'].split(',')}
+          TEST_LIMIT = int(os.environ.get('TEST_LIMIT') or 0)
+
+          MANFRED_URL = "https://www.getmanfred.com/api/v2/public/offers"
+
+          now = datetime.now(timezone.utc)
+          cutoff = now - timedelta(hours=MAX_AGE_HOURS)
+
+          def site_window(options):
+              # Each site only has a few date filters: use the smallest one that covers MAX_AGE_HOURS
+              for hours, value in options:
+                  if MAX_AGE_HOURS <= hours:
+                      return value
+              return options[-1][1]
+
+          def is_recent(value):
+              # Unknown dates are not dropped
+              try:
+                  return datetime.fromisoformat(str(value).replace('Z', '+00:00')) >= cutoff
+              except ValueError:
+                  return True
+
+          def description_text(job):
+              parts = [job.get(k) for k in ('description', 'descriptionText', 'descriptionHtml', 'description_text', 'technologies')]
+              return ' '.join(' '.join(map(str, p)) if isinstance(p, list) else str(p or '') for p in parts).lower()
+
+          # Each actor uses different field names, so we try several
+          def pick(job, *keys):
+              for key in keys:
+                  value = job.get(key)
+                  if isinstance(value, dict):
+                      value = value.get('name') or value.get('title')
+                  if value not in (None, '', []):
+                      return value
+              return None
+
+          def job_title(job):
+              return pick(job, 'title', 'jobTitle', 'position', 'name')
+
+          def job_company(job):
+              return pick(job, 'company', 'companyName', 'company_name', 'employer')
+
+          def job_url(job):
+              return pick(job, 'url', 'offer_url', 'link', 'jobUrl', 'applyUrl')
+
+          def mentions_required(text):
+              return not MUST_CONTAIN or any(word in text for word in MUST_CONTAIN)
+
+          def is_excluded(job):
+              text = f"{job_title(job) or ''} {job_company(job) or ''}".lower()
+              return any(word in text for word in EXCLUDE)
+
+          def job_date(job):
+              return pick(job, 'publishDateISO', 'published_at', 'postedAt', 'postedDate', 'publishedAt')
+
+          print(f"⚙️  config.json: {len(TITLES)} titles | sources: {', '.join(SOURCES)} | last {MAX_AGE_HOURS}h | must contain {MUST_CONTAIN} | exclude {EXCLUDE}")
 
           # ===================================================================
-          # STEP 1: INICIAR TODOS OS SCRAPERS
+          # SEARCHES (one run per title per site)
+          # ===================================================================
+
+          searches = []
+          for title in TITLES:
+              if 'linkedin' in SOURCES:
+                  cfg = SOURCES['linkedin']
+                  searches.append({
+                      "name": f"LinkedIn - {title}",
+                      "source": "linkedin",
+                      "actor": cfg['actor'],
+                      "payload": {
+                          "keywords": title,
+                          "location": cfg.get('location', ''),
+                          "limit": TEST_LIMIT or cfg.get('limit', 50),
+                          "datePosted": site_window([(24, "r86400"), (168, "r604800"), (720, "r2592000"), (10**9, "")]),
+                          "urlParam": [
+                              {"key": "f_E", "value": ",".join(cfg.get('experienceLevel', []))},
+                              {"key": "f_JT", "value": ",".join(cfg.get('jobType', []))}
+                          ]
+                      }
+                  })
+              if 'tecnoempleo' in SOURCES:
+                  cfg = SOURCES['tecnoempleo']
+                  searches.append({
+                      "name": f"Tecnoempleo - {title}",
+                      "source": "tecnoempleo",
+                      "actor": cfg['actor'],
+                      "payload": {
+                          "query": title,
+                          "province": cfg.get('province', ''),
+                          "date_start": cutoff.strftime("%Y-%m-%d"),
+                          "maxResults": TEST_LIMIT or cfg.get('maxResults', 25),
+                          "includeDetails": True,
+                          "descriptionFormat": "text"
+                      }
+                  })
+              if 'infojobs' in SOURCES:
+                  cfg = SOURCES['infojobs']
+                  searches.append({
+                      "name": f"InfoJobs - {title}",
+                      "source": "infojobs",
+                      "actor": cfg['actor'],
+                      "payload": {
+                          "searchUrl": "https://www.infojobs.net/jobsearch/search-results/list.xhtml?" + urlencode({
+                              "keyword": title,
+                              "sinceDate": site_window([(24, "_24_HOURS"), (168, "_7_DAYS"), (360, "_15_DAYS"), (10**9, "ANY")]),
+                              "sortBy": "PUBLICATION_DATE"
+                          }),
+                          "results_wanted": TEST_LIMIT or cfg.get('maxResults', 25)
+                      }
+                  })
+
+          # ===================================================================
+          # STEP 1: START ALL SCRAPERS
           # ===================================================================
           
           print("=" * 70)
-          print(f"🚀 STEP 1: Starting {len(searches)} LinkedIn Scrapers")
+          print(f"🚀 STEP 1: Starting {len(searches)} Apify scrapers")
           print("=" * 70)
           
-          url = f"https://api.apify.com/v2/acts/{ACTOR_ID}/runs"
           headers = {"Authorization": f"Bearer {API_TOKEN}", "Content-Type": "application/json"}
           
           runs = []
           
           for search in searches:
-              print(f"\n📊 Starting: {search['name']}")
-              print(f"   Title: {search['payload']['title']}")
-              print(f"   Location: {search['payload']['location']}")
-              print(f"   Limit: {search['payload']['limit']}")
+              print(f"\n📊 Starting: {search['name']} ({search['source']})")
+              print(f"   Payload: {json.dumps(search['payload'], ensure_ascii=False)}")
               
+              url = f"https://api.apify.com/v2/acts/{search['actor']}/runs"
               response = requests.post(url, json=search['payload'], headers=headers)
               
               if response.status_code == 201:
                   run_id = response.json()['data']['id']
                   runs.append({
                       "name": search['name'],
+                      "source": search['source'],
                       "run_id": run_id,
                       "payload": search['payload']
                   })
@@ -131,14 +207,14 @@ jobs:
                   print(f"   ❌ Failed: {response.status_code}")
                   print(f"   {response.text}")
           
-          if len(runs) == 0:
+          if searches and len(runs) == 0:
               print("\n❌ No scrapers started successfully!")
               exit(1)
           
           print(f"\n✅ Successfully started {len(runs)}/{len(searches)} scrapers")
 
           # ===================================================================
-          # STEP 2: AGUARDAR CONCLUSÃO DE TODOS OS RUNS
+          # STEP 2: WAIT FOR ALL RUNS TO FINISH
           # ===================================================================
           
           print("\n" + "=" * 70)
@@ -158,7 +234,7 @@ jobs:
               start_time = time.time()
               
               while time.time() - start_time < max_wait:
-                  # Endpoint CORRETO: /v2/actor-runs/
+                  # Run status endpoint: /v2/actor-runs/
                   status_url = f"https://api.apify.com/v2/actor-runs/{run_id}"
                   status_response = requests.get(status_url, headers={"Authorization": f"Bearer {API_TOKEN}"})
                   
@@ -168,7 +244,7 @@ jobs:
                       
                       if status == "SUCCEEDED":
                           elapsed = int(time.time() - start_time)
-                          # Guardar dataset ID para download
+                          # Keep the dataset ID for the download
                           run['dataset_id'] = run_data.get('defaultDatasetId')
                           print(f"   ✅ Completed in {elapsed}s")
                           print(f"   📊 Dataset ID: {run['dataset_id']}")
@@ -178,10 +254,10 @@ jobs:
                           print(f"   ❌ Failed with status: {status}")
                           break
                       elif status == "RUNNING":
-                          # Atualiza a cada 15 segundos
+                          # Check again every 15 seconds
                           time.sleep(15)
                       else:
-                          # Para outros status, aguarda mais
+                          # Other statuses: wait a bit longer
                           time.sleep(10)
                   else:
                       print(f"   ⚠️ Error checking status: {status_response.status_code}")
@@ -193,7 +269,7 @@ jobs:
           print(f"\n✅ Completed: {len(completed_runs)}/{len(runs)} runs")
 
           # ===================================================================
-          # STEP 3: DOWNLOAD DE TODOS OS RESULTADOS
+          # STEP 3: DOWNLOAD ALL RESULTS
           # ===================================================================
           
           print("\n" + "=" * 70)
@@ -219,7 +295,7 @@ jobs:
                   print(f"   ⚠️ No dataset ID found, trying alternative method...")
                   dataset_url = f"https://api.apify.com/v2/actor-runs/{run_id}/dataset/items"
               else:
-                  # Endpoint CORRETO: /v2/datasets/{dataset_id}/items
+                  # Dataset items endpoint: /v2/datasets/{dataset_id}/items
                   dataset_url = f"https://api.apify.com/v2/datasets/{dataset_id}/items"
               
               print(f"   🔗 URL: {dataset_url}")
@@ -236,22 +312,93 @@ jobs:
                   jobs = results_response.json()
                   
                   for job in jobs:
+                      job['_source'] = run['source']
                       job['_search_name'] = name
-                      job['_search_title'] = run['payload']['title']
-                      job['_search_location'] = run['payload']['location']
-                  
+
+                  print(f"   ✅ Downloaded {len(jobs)} jobs")
+                  if jobs:
+                      print(f"   🧾 Fields: {', '.join(sorted(jobs[0].keys()))}")
+
+                  # Filters from config.json
+                  before = len(jobs)
+                  jobs = [job for job in jobs if is_recent(job_date(job))]
+                  print(f"   🕐 Kept {len(jobs)}/{before} from the last {MAX_AGE_HOURS}h")
+
+                  before = len(jobs)
+                  jobs = [job for job in jobs if mentions_required(description_text(job))]
+                  print(f"   🔎 Kept {len(jobs)}/{before} with {MUST_CONTAIN} in the description")
+
+                  before = len(jobs)
+                  jobs = [job for job in jobs if not is_excluded(job)]
+                  print(f"   🚫 Kept {len(jobs)}/{before} without {EXCLUDE}")
+
                   all_jobs.extend(jobs)
-                  
+
                   stats['by_search'][name] = len(jobs)
                   stats['total_jobs'] += len(jobs)
-                  
-                  print(f"   ✅ Downloaded {len(jobs)} jobs")
               else:
                   print(f"   ❌ Failed to download: {results_response.status_code}")
                   print(f"   Response: {results_response.text[:500]}")
 
+          # ---------------- Manfred (public API, no Apify) ----------------
+          if 'manfred' in SOURCES:
+              print(f"\n📥 Downloading: Manfred")
+              try:
+                  manfred_response = requests.get(MANFRED_URL, params={"lang": "ES", "onlyActive": "true"}, timeout=30)
+                  manfred_response.raise_for_status()
+                  manfred_jobs = []
+                  for summary in manfred_response.json():
+                      # The detail has the full description, the technologies and the publish date
+                      offer = requests.get(f"{MANFRED_URL}/{summary['id']}", params={"lang": "ES"}, timeout=30).json()
+                      salary_from, salary_to = offer.get('salaryFrom'), offer.get('salaryTo')
+                      job = {
+                          **offer,
+                          'title': offer.get('position', '').strip(),
+                          'company': (offer.get('company') or {}).get('name'),
+                          'location': ', '.join(offer.get('locations') or []),
+                          'url': f"https://www.getmanfred.com/ofertas-empleo/{offer['id']}/{offer['slug']}",
+                          'postedAt': offer.get('lastStatusChange') or offer.get('updatedAt'),
+                          'salary': f"{salary_from}-{salary_to} {offer.get('currency', '')}" if salary_from else None,
+                          '_source': 'manfred',
+                          '_search_name': 'Manfred',
+                      }
+                      # Only the description and technologies count (not the title)
+                      offer_text = json.dumps({k: v for k, v in offer.items() if k not in ('company', 'position', 'slug', 'internalCode')}, ensure_ascii=False).lower()
+                      if is_recent(job['postedAt']) and mentions_required(offer_text) and not is_excluded(job):
+                          manfred_jobs.append(job)
+                  all_jobs.extend(manfred_jobs)
+                  stats['by_search']['Manfred'] = len(manfred_jobs)
+                  stats['total_jobs'] += len(manfred_jobs)
+                  print(f"   ✅ Kept {len(manfred_jobs)} jobs after filters")
+              except Exception as e:
+                  print(f"   ❌ Manfred failed: {e}")
+
+          # ---------------- Remove duplicates ----------------
+          # The same job can show up for several titles and on several sites.
+          # Key: normalized title + company (no accents, case or punctuation).
+          def normalize(text):
+              text = unicodedata.normalize('NFKD', str(text or '')).encode('ascii', 'ignore').decode().lower()
+              return re.sub(r'[^a-z0-9]+', '', text)
+
+          unique_jobs = {}
+          for job in all_jobs:
+              title, company = job_title(job), job_company(job)
+              key = (normalize(title), normalize(company)) if title and company else job_url(job) or id(job)
+              found = f"{job['_source']}: {job['_search_name']}"
+              if key in unique_jobs:
+                  if found not in unique_jobs[key]['_found_in']:
+                      unique_jobs[key]['_found_in'].append(found)
+              else:
+                  job['_found_in'] = [found]
+                  unique_jobs[key] = job
+
+          stats['duplicates_removed'] = len(all_jobs) - len(unique_jobs)
+          all_jobs = list(unique_jobs.values())
+          stats['total_jobs'] = len(all_jobs)
+          print(f"\n🧹 Removed {stats['duplicates_removed']} duplicates → {len(all_jobs)} unique jobs")
+
           # ===================================================================
-          # STEP 4: SALVAR RESULTADOS
+          # STEP 4: SAVE RESULTS
           # ===================================================================
           
           print("\n" + "=" * 70)
@@ -259,37 +406,32 @@ jobs:
           print("=" * 70)
           
           if all_jobs:
-              # Salvar JSON completo
+              # Save the full JSON
               with open('jobs_latest.json', 'w', encoding='utf-8') as f:
                   json.dump(all_jobs, f, ensure_ascii=False, indent=2)
               print(f"✅ Saved jobs_latest.json ({len(all_jobs)} jobs)")
               
-              # Criar CSV simplificado
+              # Simplified CSV with the same columns for every site
               try:
-                  df = pd.DataFrame(all_jobs)
-                  
-                  # Selecionar colunas mais importantes (ajusta conforme o output real do actor)
-                  # Como não sabemos exatamente quais campos o actor retorna, vamos tentar campos comuns
-                  possible_columns = [
-                      'title', 'company', 'location', 'url', 'link', 'jobUrl',
-                      'description', 'postedAt', 'salary', 'employmentType',
-                      '_search_name', '_search_title', '_search_location'
-                  ]
-                  
-                  export_cols = [col for col in possible_columns if col in df.columns]
-                  
-                  if export_cols:
-                      df[export_cols].to_csv('jobs_latest.csv', index=False, encoding='utf-8')
-                      print(f"✅ Saved jobs_latest.csv ({len(export_cols)} columns)")
-                  else:
-                      # Se não encontrar colunas conhecidas, exporta todas
-                      df.to_csv('jobs_latest.csv', index=False, encoding='utf-8')
-                      print(f"✅ Saved jobs_latest.csv (all columns)")
-              
+                  rows = [{
+                      'source': job.get('_source'),
+                      'search': job.get('_search_name'),
+                      'found_in': ' | '.join(job.get('_found_in', [])),
+                      'title': job_title(job),
+                      'company': job_company(job),
+                      'location': pick(job, 'location', 'city', 'province', 'jobLocation'),
+                      'remote': pick(job, 'teleworking', 'workArrangement', 'remote', 'workType', 'remotePercentage'),
+                      'salary': pick(job, 'salary', 'salaryText', 'salaryDescription', 'salary_min'),
+                      'postedAt': pick(job, 'postedAt', 'postedDate', 'publishDateISO', 'published_at', 'publishedAt', 'date', 'updatedAt'),
+                      'url': job_url(job),
+                  } for job in all_jobs]
+                  pd.DataFrame(rows).to_csv('jobs_latest.csv', index=False, encoding='utf-8')
+                  print(f"✅ Saved jobs_latest.csv ({len(rows)} rows)")
+
               except Exception as e:
                   print(f"⚠️ Could not create CSV: {e}")
               
-              # Salvar estatísticas
+              # Save statistics
               stats['timestamp'] = datetime.now().isoformat()
               stats['searches_executed'] = len(completed_runs)
               stats['searches_total'] = len(searches)
@@ -298,7 +440,7 @@ jobs:
                   json.dump(stats, f, indent=2)
               print(f"✅ Saved summary.json")
               
-              # Salvar info dos runs
+              # Save run info
               run_info = []
               for run in completed_runs:
                   run_info.append({
@@ -319,7 +461,7 @@ jobs:
                   json.dump(stats, f, indent=2)
 
           # ===================================================================
-          # STEP 5: RESUMO FINAL
+          # STEP 5: FINAL SUMMARY
           # ===================================================================
           
           print("\n" + "=" * 70)
