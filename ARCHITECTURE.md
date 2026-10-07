@@ -19,7 +19,7 @@ or locally (`scripts/run_local.py`, also used by the agent).
 .claude/agents/job-researcher.md             ← HOW: tools, model, gh/local commands,
                                                 cost rules, ranking format
         │
-        ▼  saves results/latest-ranking.md
+        ▼  saves results/latest-ranking.md (+ .html via scripts/render_ranking.py)
 /tailor-cv 3                                 ← typed by the user: CV for job #3 of the ranking
         │
         ▼

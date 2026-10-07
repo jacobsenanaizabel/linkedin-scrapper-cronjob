@@ -44,5 +44,7 @@ For option A, wait for the run to finish and download the artifact to `results/<
    If there are more than 20 jobs, show the top 20 and say how many were left out.
    Also save the full ranking table (with `#` and the job link) to `results/latest-ranking.md`,
    overwriting the previous one — `/tailor-cv <#>` reads it.
+   Keep the notes as `- ` bullets below the table. Then run `python scripts/render_ranking.py`, which writes
+   `results/latest-ranking.html` (readable version with score colors, filters and job links), and give the user its path.
 4. If a CSV column is always empty for a site (e.g. `company` for InfoJobs), say which one
    and show that site's `🧾 Fields:` line from the log — it means the field mapping needs adjusting.

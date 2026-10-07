@@ -20,6 +20,7 @@ The Python scraper lives inline in the workflow YAML; all search settings come f
 | `.github/workflows/linkedin-scraper-advanced.yml` | Main workflow (manual `workflow_dispatch` only, optional inputs `sources`, `test_limit`): reads `config.json`, starts the searches, waits, downloads, filters, dedupes, saves JSON/CSV, uploads artifacts. No search values are hardcoded here. |
 | `.github/workflows/linkedin-scraper.yml` | Legacy LinkedIn-only workflow (manual only) |
 | `scripts/run_local.py` | Runs the workflow's inline Python locally. Token from `APIFY_TOKEN` or `.env`. `python scripts/run_local.py tecnoempleo,infojobs 5` = only those sites, 5 results per title. |
+| `scripts/render_ranking.py` | Turns `results/latest-ranking.md` into `results/latest-ranking.html` (score colors, search/score filters, job links). Run by `/search-jobs` after every ranking; stdlib only. |
 | `ARCHITECTURE.md` | Architecture and workflow diagrams — update when the pipeline changes |
 | `README.md`, `QUICKSTART.md`, `SETUP_GUIDE.md` | User docs |
 | `.claude/agents/` | Claude Code subagents for this repo |
