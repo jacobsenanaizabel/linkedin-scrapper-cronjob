@@ -12,3 +12,12 @@ run_info.json
 
 # Results downloaded from GitHub by the agent
 results/
+
+# CVs: personal data, never commit (repo is public)
+cv/
+
+# Local run logs
+*.log
+
+# Any PDF (CVs) anywhere in the repo
+*.pdf

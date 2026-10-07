@@ -92,13 +92,10 @@ The run page also shows a summary, and the log explains what each filter dropped
 
 ---
 
-## 🔄 STEP 6: Automatic runs
+## 🔄 STEP 6: Running it again
 
-Already configured! 🎉 The workflow runs **automatically**:
-- ⏰ **When:** Sunday, Monday and Tuesday
-- 🕐 **Time:** 09:00 UTC
-
-To **check the next run**: Actions tab → workflow → the schedule is shown on the right.
+There is **no schedule** — the scraper runs only when you start it, so it never spends Apify credit on its own.
+Whenever you want fresh jobs: Actions tab → **LinkedIn Scraper Advanced** → **Run workflow** (leave the inputs empty for a full run).
 
 ---
 
@@ -120,19 +117,9 @@ Edit `config.json` (the single source of truth — never edit searches in the wo
 
 Every field is explained in `_help` inside the file. Commit the change and the next run uses it.
 
-### Change the schedule
+### Make it automatic (optional)
 
-1. Edit `.github/workflows/linkedin-scraper-advanced.yml`
-2. Find the line:
-   ```yaml
-   cron: '0 9 * * 0,1,2'
-   ```
-3. Change it, e.g.:
-   - `'0 9 * * 1'` - Every Monday
-   - `'0 9 * * 1-5'` - Weekdays
-   - `'0 9 1 * *'` - 1st day of the month
-
-Use https://crontab.guru for help.
+By default there is no schedule. To add one, see "Want it to run automatically?" in `README.md`.
 
 ---
 

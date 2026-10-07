@@ -2,8 +2,8 @@
 
 ## 🎯 What you get
 
-✅ Automated job scraper for LinkedIn, Tecnoempleo, InfoJobs and Manfred (GitHub Actions + Apify)
-✅ Runs automatically on Sunday, Monday and Tuesday
+✅ Job scraper for LinkedIn, Tecnoempleo, InfoJobs and Manfred (GitHub Actions + Apify)
+✅ Runs only when you click **Run workflow** (no schedule, no surprise costs)
 ✅ Only jobs from the last 24h that mention React in the description
 ✅ No consultancies, no duplicates
 ✅ Results as JSON + CSV
@@ -67,12 +67,8 @@ Everything is in `config.json`:
 "sources": { "linkedin": { "enabled": true, "limit": 50 } }
 ```
 
-To change the schedule, edit the `cron` in `.github/workflows/linkedin-scraper-advanced.yml`:
-```yaml
-cron: '0 9 * * 0,1,2'   ← Sun, Mon, Tue
-      '0 9 * * 1'       ← every Monday
-      '0 9 * * 1-5'     ← weekdays
-```
+There is no schedule: the scraper runs only when you start it (Actions → Run workflow).
+To make it automatic, see "Want it to run automatically?" in `README.md`.
 
 ---
 
@@ -94,12 +90,6 @@ Settings → Actions → General
 → Workflow permissions
 → ✅ Read and write permissions
 → Save
-```
-
-### The scheduled run doesn't happen
-```
-Actions → workflow → check it's not disabled
-(GitHub disables schedules after 60 days without commits)
 ```
 
 ### Empty results
@@ -126,4 +116,3 @@ Actions → workflow → check it's not disabled
 - [ ] Test run with `test_limit: 5` succeeded
 - [ ] Results checked (Artifacts)
 - [ ] `config.json` adjusted to your profile
-- [ ] Next scheduled run visible in Actions

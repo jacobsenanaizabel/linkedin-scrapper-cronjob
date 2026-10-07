@@ -4,8 +4,8 @@ Guidance for AI coding agents (Claude Code, Codex, Cursor, etc.) working in this
 
 ## What this repo is
 
-An automated job scraper for LinkedIn, Tecnoempleo, InfoJobs and Manfred. GitHub Actions runs on a cron
-schedule (Sun/Mon/Tue 09:00 UTC), triggers [Apify](https://apify.com) actors for a set of search queries
+A job scraper for LinkedIn, Tecnoempleo, InfoJobs and Manfred. GitHub Actions runs it **only on demand**
+(Run workflow button / `workflow_dispatch` — there is deliberately no schedule; don't add one unless the user asks), triggers [Apify](https://apify.com) actors for a set of search queries
 (Manfred is read from its public API), downloads the results and
 publishes them as workflow artifacts (`jobs_latest.json`, `jobs_latest.csv`, `summary.json`,
 `run_info.json`).
@@ -17,8 +17,8 @@ The Python scraper lives inline in the workflow YAML; all search settings come f
 | Path | Purpose |
 |------|---------|
 | `config.json` | **Single source of truth**: titles, `descriptionMustContain`, `excludeKeywords`, `excludeCompanies`, `maxAgeHours`, per-site settings (`sources.*`: `enabled`, `actor`, limits). `_help` documents every field. |
-| `.github/workflows/linkedin-scraper-advanced.yml` | Main workflow (cron or `workflow_dispatch` with optional inputs `sources`, `test_limit`): reads `config.json`, starts the searches, waits, downloads, filters, dedupes, saves JSON/CSV, uploads artifacts. No search values are hardcoded here. |
-| `.github/workflows/linkedin-scraper.yml` | Legacy LinkedIn-only workflow (schedule disabled, manual only) |
+| `.github/workflows/linkedin-scraper-advanced.yml` | Main workflow (manual `workflow_dispatch` only, optional inputs `sources`, `test_limit`): reads `config.json`, starts the searches, waits, downloads, filters, dedupes, saves JSON/CSV, uploads artifacts. No search values are hardcoded here. |
+| `.github/workflows/linkedin-scraper.yml` | Legacy LinkedIn-only workflow (manual only) |
 | `scripts/run_local.py` | Runs the workflow's inline Python locally. Token from `APIFY_TOKEN` or `.env`. `python scripts/run_local.py tecnoempleo,infojobs 5` = only those sites, 5 results per title. |
 | `ARCHITECTURE.md` | Architecture and workflow diagrams — update when the pipeline changes |
 | `README.md`, `QUICKSTART.md`, `SETUP_GUIDE.md` | User docs |
@@ -71,6 +71,7 @@ items `GET /v2/datasets/{datasetId}/items`. Apify charges per downloaded result,
 
 - **Never commit secrets.** The Apify token is only `secrets.APIFY_TOKEN` on GitHub or the git-ignored `.env` locally.
 - Don't commit scraper output (`jobs_latest.*`, `summary.json`, `run_info.json`) — it's delivered as artifacts.
+- **Never commit or copy anything from `cv/`** (personal data; git-ignored). Only the template and renderer in `.claude/skills/tailor-cv/` are committed.
 - **Change searches/filters in `config.json`, never in the workflow.** Update `_help` when adding a field.
 - When editing the workflow, keep the inline Python valid and test with `scripts/run_local.py` (small `TEST_LIMIT`) or `workflow_dispatch`.
 - Everything in the repo is in English: docs, comments, log messages, `config.json` `_help`, skills and agents.
@@ -79,5 +80,6 @@ items `GET /v2/datasets/{datasetId}/items`. Apify charges per downloaded result,
 
 | Agent | File | Use it for |
 |-------|------|------------|
+| `/tailor-cv` (skill) | `.claude/skills/tailor-cv/SKILL.md` | User-only. `/tailor-cv <job URL | text | ranking #> [--cover-letter]` rewrites the CV from `cv/master.md` for one job and renders a PDF (`render_pdf.py`, headless Edge/Chrome) into `cv/tailored/`. Never invents experience. Runs in the main conversation so the user can iterate. |
 | `/search-jobs` (skill) | `.claude/skills/search-jobs/SKILL.md` | User-only entry point (`disable-model-invocation`). `/search-jobs [sites] [limite] [local]` runs the scraper and ranks the results, executing inside `job-researcher` (`context: fork`) |
 | `job-researcher` | `.claude/agents/job-researcher.md` | Running the scraper (GitHub via `gh workflow run`, or `scripts/run_local.py`), then finding, filtering and ranking job openings that match the candidate profile |

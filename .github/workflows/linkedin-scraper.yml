@@ -1,11 +1,7 @@
 name: LinkedIn Job Scraper (RIGGeqD6RqKmlVoQU)
 
 on:
-  # Schedule disabled — manual runs only
-  schedule:
-  #  - cron: '0 9 */3 * *'
-  
-  # Allow manual runs
+  # Manual runs only (no schedule). The scheduled scraper is linkedin-scraper-advanced.yml
   workflow_dispatch:
 
 jobs:

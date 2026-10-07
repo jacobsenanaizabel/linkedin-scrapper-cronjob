@@ -1,8 +1,7 @@
 name: LinkedIn Scraper Advanced (RIGGeqD6RqKmlVoQU)
 
 on:
-  schedule:
-    - cron: '0 9 * * 0,1,2'  # Sunday, Monday and Tuesday at 09:00 UTC
+  # Manual runs only: Actions tab → Run workflow (or `gh workflow run`). No schedule on purpose.
   workflow_dispatch:
     inputs:
       sources:
@@ -112,14 +111,21 @@ jobs:
           def mentions_required(text):
               return not MUST_CONTAIN or any(word in text for word in MUST_CONTAIN)
 
+          def normalize(text):
+              text = unicodedata.normalize('NFKD', str(text or '')).encode('ascii', 'ignore').decode().lower()
+              return re.sub(r'[^a-z0-9]+', '', text)
+
+          # Exact company names (normalized), so 'UST' doesn't match 'Industrial'.
+          EXCLUDE_COMPANIES = {normalize(c) for c in CONFIG.get('excludeCompanies', [])}
+
           def is_excluded(job):
               text = f"{job_title(job) or ''} {job_company(job) or ''}".lower()
-              return any(word in text for word in EXCLUDE)
+              return any(word in text for word in EXCLUDE) or normalize(job_company(job)) in EXCLUDE_COMPANIES
 
           def job_date(job):
               return pick(job, 'publishDateISO', 'published_at', 'postedAt', 'postedDate', 'publishedAt')
 
-          print(f"⚙️  config.json: {len(TITLES)} titles | sources: {', '.join(SOURCES)} | last {MAX_AGE_HOURS}h | must contain {MUST_CONTAIN} | exclude {EXCLUDE}")
+          print(f"⚙️  config.json: {len(TITLES)} titles | sources: {', '.join(SOURCES)} | last {MAX_AGE_HOURS}h | must contain {MUST_CONTAIN} | exclude {EXCLUDE} | {len(EXCLUDE_COMPANIES)} excluded companies")
 
           # ===================================================================
           # SEARCHES (one run per title per site)
@@ -193,7 +199,15 @@ jobs:
               
               url = f"https://api.apify.com/v2/acts/{search['actor']}/runs"
               response = requests.post(url, json=search['payload'], headers=headers)
-              
+
+              # The Apify plan limits how many runs can be active at once: wait for some to finish and retry
+              waited = 0
+              while response.status_code == 402 and 'concurrent-runs-limit-exceeded' in response.text and waited < 900:
+                  print(f"   ⏳ Apify concurrent run limit reached, retrying in 20s (waited {waited}s)")
+                  time.sleep(20)
+                  waited += 20
+                  response = requests.post(url, json=search['payload'], headers=headers)
+
               if response.status_code == 201:
                   run_id = response.json()['data']['id']
                   runs.append({
@@ -330,7 +344,7 @@ jobs:
 
                   before = len(jobs)
                   jobs = [job for job in jobs if not is_excluded(job)]
-                  print(f"   🚫 Kept {len(jobs)}/{before} without {EXCLUDE}")
+                  print(f"   🚫 Kept {len(jobs)}/{before} without {EXCLUDE} or excluded companies")
 
                   all_jobs.extend(jobs)
 
@@ -376,10 +390,6 @@ jobs:
           # ---------------- Remove duplicates ----------------
           # The same job can show up for several titles and on several sites.
           # Key: normalized title + company (no accents, case or punctuation).
-          def normalize(text):
-              text = unicodedata.normalize('NFKD', str(text or '')).encode('ascii', 'ignore').decode().lower()
-              return re.sub(r'[^a-z0-9]+', '', text)
-
           unique_jobs = {}
           for job in all_jobs:
               title, company = job_title(job), job_company(job)

@@ -1,10 +1,10 @@
-# 🤖 Job Scraper - Automated
+# 🤖 Job Scraper
 
-Automated job scraper for **LinkedIn, Tecnoempleo, InfoJobs and Manfred**, using GitHub Actions + Apify.
+On-demand job scraper for **LinkedIn, Tecnoempleo, InfoJobs and Manfred**: one click in GitHub Actions, results filtered and deduplicated, using Apify.
 
 ## 🎯 What it does
 
-- ✅ Runs **automatically on Sunday, Monday and Tuesday** at 09:00 UTC
+- ✅ Runs **only when you start it** (Run workflow button in GitHub Actions) — nothing runs or spends Apify credit on its own
 - ✅ Searches the job titles you choose, on the sites you choose
 - ✅ Keeps only recent jobs that match your filters, and removes duplicates
 - ✅ Produces JSON + CSV files to download (open the CSV in Excel / Google Sheets)
@@ -135,7 +135,7 @@ Leave the `actor` values as they are — they tell Apify which scraper to use fo
 
 ### Before your first real run
 
-1. Do a cheap test: **Actions → Run workflow** with `test_limit` = `5` (see [Manual run](#manual-run)).
+1. Do a cheap test: **Actions → Run workflow** with `test_limit` = `5` (see [Run it](#run-it)).
 2. Open `jobs_latest.csv` and check the jobs look right.
 3. Too few results? Raise `maxAgeHours`, add more `titles`, or empty `descriptionMustContain`.
    Too many unrelated results? Add words to `descriptionMustContain` or `excludeKeywords`.
@@ -166,16 +166,9 @@ git clone https://github.com/<your-username>/linkedin-scrapper-cronjob.git
 
 ## 🚀 How to Use
 
-### Automatic run
+### Run it
 
-The scraper runs **automatically**:
-- **Days:** Sunday, Monday and Tuesday
-- **Time:** 09:00 UTC
-- **Nothing to do!**
-
-### Manual run
-
-To run it now (without waiting for the next schedule):
+The scraper **only runs when you start it** — there is no schedule.
 
 1. Go to the **Actions** tab
 2. Click the **"LinkedIn Scraper Advanced"** workflow
@@ -193,6 +186,23 @@ To run it now (without waiting for the next schedule):
 ```
 
 Requires the GitHub CLI (`gh auth login`) or a local `.env` file. See [AGENTS.md](AGENTS.md).
+
+### Tailor your CV to a job (Claude Code)
+
+```
+/tailor-cv 3                                   → CV for job #3 of the last /search-jobs ranking
+/tailor-cv https://company.com/jobs/123        → CV for a job link
+/tailor-cv 3 --cover-letter                    → also writes a cover letter
+```
+
+1. Put your current CV (PDF) in `cv/original/`.
+2. The first run converts it to `cv/master.md` — review it and add everything you've done. It is the source
+   of truth: tailored CVs only reorder, trim and reword what's in it, **never invent experience**.
+3. Each run creates `cv/tailored/<date>-<company>-<role>/` with `cv.pdf` (ready to send) and `report.md`
+   (how well you match, and the gaps).
+
+PDFs are generated with Microsoft Edge or Google Chrome (already on most computers). The `cv/` folder is in
+`.gitignore`, so your personal data never reaches GitHub.
 
 ## 📥 Getting the Results
 
@@ -232,21 +242,19 @@ Requires the GitHub CLI (`gh auth login`) or a local `.env` file. See [AGENTS.md
 
 Duplicate jobs (same title + company, across searches or sites) are merged into one; the `found_in` column in the CSV shows where it appeared.
 
-### Change the schedule
+### Want it to run automatically? (optional)
 
-In `.github/workflows/linkedin-scraper-advanced.yml`, change the cron:
+Add a `schedule` to the `on:` block of `.github/workflows/linkedin-scraper-advanced.yml`:
 
 ```yaml
-schedule:
-  - cron: '0 9 * * 0,1,2'  # Sunday, Monday and Tuesday at 09:00 UTC
+on:
+  schedule:
+    - cron: '0 7 * * *'   # every day at 07:00 UTC (https://crontab.guru)
+  workflow_dispatch:
 ```
 
-Examples:
-- `'0 9 * * 1'` - Every Monday at 09:00
-- `'0 9 * * 1-5'` - Monday to Friday at 09:00
-- `'0 9 1 * *'` - 1st day of every month at 09:00
-
-**Cron calculator:** https://crontab.guru
+Notes: run it daily if `maxAgeHours` is 24, otherwise jobs posted on the skipped days are never seen. On public repos,
+GitHub disables schedules after 60 days without commits — re-enable the workflow in the **Actions** tab.
 
 ### Cost per run
 
@@ -310,18 +318,12 @@ linkedin-scrapper-cronjob/
 
 ## 🐛 Troubleshooting
 
-### The workflow doesn't run automatically
+### "Resource not accessible by integration"
 
 1. Go to **Settings** → **Actions** → **General**
 2. Scroll down to **Workflow permissions**
 3. Enable **Read and write permissions**
 4. **Save**
-
-GitHub also disables scheduled workflows after 60 days without commits in the repo — re-enable it in the **Actions** tab.
-
-### "Resource not accessible by integration"
-
-Same as above — insufficient permissions.
 
 ### The scraper fails
 

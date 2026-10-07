@@ -2,10 +2,10 @@
 
 The system has two independent parts that share `config.json` and the result files:
 
-1. **Automated scraper** (GitHub Actions, no AI) — searches jobs on 4 sites, filters them and publishes the results.
+1. **Scraper** (GitHub Actions, no AI, runs only when started) — searches jobs on 4 sites, filters them and publishes the results.
 2. **Agents** (Claude Code, with AI) — used on demand to trigger the scraper, analyze the results and search further.
 
-The scraper can be triggered in 4 ways: cron, the "Run workflow" button, the agent (`gh workflow run ... -f sources=... -f test_limit=...`)
+There is no schedule. The scraper is triggered in 3 ways: the "Run workflow" button, the agent (`gh workflow run ... -f sources=... -f test_limit=...`)
 or locally (`scripts/run_local.py`, also used by the agent).
 
 ```
@@ -18,6 +18,15 @@ or locally (`scripts/run_local.py`, also used by the agent).
         ▼
 .claude/agents/job-researcher.md             ← HOW: tools, model, gh/local commands,
                                                 cost rules, ranking format
+        │
+        ▼  saves results/latest-ranking.md
+/tailor-cv 3                                 ← typed by the user: CV for job #3 of the ranking
+        │
+        ▼
+.claude/skills/tailor-cv/SKILL.md            ← runs in the main conversation (so you can iterate)
+   reads   cv/master.md  (full, true CV — never committed)
+   writes  cv/tailored/<date>-<company>-<role>/ cv.html → cv.pdf (render_pdf.py, headless Edge/Chrome)
+                                                + report.md (match, gaps) [+ cover-letter.md]
 ```
 
 ## Overview
@@ -34,10 +43,10 @@ or locally (`scripts/run_local.py`, also used by the agent).
           ┌─────────────────────┘                └─────────────────────┐
           ▼                                                            ▼
 ┌───────────────────────────────────────┐        ┌──────────────────────────────────────┐
-│  AUTOMATED · GitHub Actions           │        │  ON DEMAND · Claude Code             │
+│  ON DEMAND · GitHub Actions           │        │  ON DEMAND · Claude Code             │
 │                                       │        │                                      │
-│  ⏰ cron Sun/Mon/Tue 09:00 UTC         │        │  CLAUDE.md ──@import──► AGENTS.md    │
-│  ▶  or "Run workflow" / gh (agent)    │        │   (context: profile, sites, rules)   │
+│  ▶  "Run workflow" button (no cron)   │        │  CLAUDE.md ──@import──► AGENTS.md    │
+│  ▶  or gh workflow run (agent)        │        │   (context: profile, sites, rules)   │
 │  💻 or scripts/run_local.py (.env)    │◄───────┤  🤖 job-researcher (subagent)        │
 │            │                          │triggers│   • triggers the scraper (gh/local)  │
 │            ▼                          │        │   • reads config + jobs_latest.json  │
@@ -106,6 +115,8 @@ or locally (`scripts/run_local.py`, also used by the agent).
 | `AGENTS.md` / `CLAUDE.md` | Context for AI agents. |
 | `.claude/skills/search-jobs/SKILL.md` | `/search-jobs` command: runs the scraper and ranks the results inside the agent. |
 | `.claude/agents/job-researcher.md` | Job research and ranking subagent. |
+| `.claude/skills/tailor-cv/` | `/tailor-cv` command, CV HTML template and PDF renderer. |
+| `cv/` | Your CVs (original PDF, `master.md`, tailored versions). Git-ignored — never committed. |
 
 ## Notes
 

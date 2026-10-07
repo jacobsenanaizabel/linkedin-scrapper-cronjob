@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<!--
+  ATS-friendly CV template: one column, real text (no images of text), standard section names,
+  no tables for layout. Replace every {{...}} and repeat/remove blocks as needed.
+  Render with: python .claude/skills/tailor-cv/render_pdf.py <this file>
+-->
+<html lang="{{LANG}}">
+<head>
+<meta charset="utf-8">
+<title>{{NAME}} — {{TARGET_TITLE}}</title>
+<style>
+  @page { size: A4; margin: 14mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Calibri, Arial, sans-serif; font-size: 10pt; line-height: 1.38; color: #1f2328; margin: 0; }
+  h1 { font-size: 20pt; margin: 0; }
+  .headline { font-size: 11.5pt; color: #0b5cad; font-weight: 600; margin: 2px 0 4px; }
+  .contact { font-size: 9pt; color: #444; }
+  .contact a { color: #444; text-decoration: none; }
+  h2 { font-size: 10.5pt; text-transform: uppercase; color: #0b5cad;
+       border-bottom: 1px solid #c9d6e3; padding-bottom: 2px; margin: 14px 0 6px; }
+  p { margin: 0 0 6px; }
+  .job { margin-bottom: 9px; page-break-inside: avoid; }
+  .job-title { font-weight: 700; }
+  .job-org { color: #333; }
+  .job-dates { color: #555; white-space: nowrap; }
+  ul { margin: 3px 0 0 16px; padding: 0; }
+  li { margin-bottom: 2px; }
+  .skills p { margin-bottom: 3px; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>{{NAME}}</h1>
+  <div class="headline">{{TARGET_TITLE}}</div>
+  <div class="contact">{{LOCATION}} · {{EMAIL}} · {{PHONE}} · <a href="{{LINKEDIN_URL}}">{{LINKEDIN_LABEL}}</a> · <a href="{{GITHUB_OR_PORTFOLIO_URL}}">{{GITHUB_OR_PORTFOLIO_LABEL}}</a></div>
+</header>
+
+<section>
+  <h2>{{SECTION_SUMMARY}}</h2>
+  <p>{{SUMMARY — 3–4 lines, written for this job}}</p>
+</section>
+
+<section class="skills">
+  <h2>{{SECTION_SKILLS}}</h2>
+  <p><strong>{{GROUP_1}}:</strong> {{skills, most relevant to the job first}}</p>
+  <p><strong>{{GROUP_2}}:</strong> {{skills}}</p>
+</section>
+
+<section>
+  <h2>{{SECTION_EXPERIENCE}}</h2>
+
+  <div class="job">
+    <div class="job-head">
+      <span class="job-title">{{ROLE}}</span> — <span class="job-org">{{COMPANY}}, {{CITY_OR_REMOTE}}</span> · <span class="job-dates">{{START}} – {{END}}</span>
+    </div>
+    <ul>
+      <li>{{achievement: action + what + measurable result, using the job's keywords where true}}</li>
+    </ul>
+  </div>
+
+</section>
+
+<section>
+  <h2>{{SECTION_EDUCATION}}</h2>
+  <div class="job">
+    <div class="job-head">
+      <span class="job-title">{{DEGREE}}</span> — <span class="job-org">{{SCHOOL}}</span> · <span class="job-dates">{{YEARS}}</span>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>{{SECTION_LANGUAGES}}</h2>
+  <p>{{Language (level) · Language (level)}}</p>
+</section>
+
+</body>
+</html>

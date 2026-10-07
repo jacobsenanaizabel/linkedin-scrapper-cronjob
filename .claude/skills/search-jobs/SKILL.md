@@ -42,5 +42,7 @@ For option A, wait for the run to finish and download the artifact to `results/<
 2. **Numbers** from `summary.json`: jobs per search, total, duplicates removed. List any `❌` lines from the log.
 3. **Ranking** of the jobs in `jobs_latest.json`, in the format from the "Output" section of your instructions.
    If there are more than 20 jobs, show the top 20 and say how many were left out.
+   Also save the full ranking table (with `#` and the job link) to `results/latest-ranking.md`,
+   overwriting the previous one — `/tailor-cv <#>` reads it.
 4. If a CSV column is always empty for a site (e.g. `company` for InfoJobs), say which one
    and show that site's `🧾 Fields:` line from the log — it means the field mapping needs adjusting.
